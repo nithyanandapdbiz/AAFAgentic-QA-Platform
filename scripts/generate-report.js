@@ -1,0 +1,498 @@
+'use strict';
+/**
+ * generate-report.js
+ *
+ * Reads test-results.json (Playwright JSON reporter output) and generates
+ * a single self-contained HTML report at custom-report/index.html.
+ *
+ * Features:
+ *  - Summary dashboard with pass/fail/blocked counts and a pie-chart
+ *  - Per-test collapsible accordion cards (Pass = green, Fail = red)
+ *  - Inline step-by-step screenshots embedded as base64
+ *  - Error messages shown for failing tests
+ *  - Zephyr test case key extracted from spec file name
+ *
+ * Usage:
+ *   node scripts/generate-report.js
+ */
+
+const fs   = require('fs');
+const path = require('path');
+
+const ROOT              = path.resolve(__dirname, '..');
+const RESULTS_FILE      = path.join(ROOT, 'test-results.json');
+const SCREENSHOTS_ROOT  = path.join(ROOT, 'test-results', 'screenshots');
+const OUT_DIR           = path.join(ROOT, 'custom-report');
+const OUT_FILE          = path.join(OUT_DIR, 'index.html');
+
+// ─── JSON walker ─────────────────────────────────────────────────────────────
+/**
+ * Walk Playwright JSON suites and collect flat list of test records:
+ *   { zephyrKey, title, status, duration, errorMsg, screenshots[] }
+ */
+function collectTests(suites, parentFile = '') {
+  const out = [];
+  for (const suite of (suites || [])) {
+    const file = suite.file || parentFile;
+    const keyMatch  = path.basename(file).match(/^(SCRUM-T\d+)_/i);
+    const zephyrKey = keyMatch ? keyMatch[1].toUpperCase() : '–';
+
+    if (suite.suites && suite.suites.length) {
+      out.push(...collectTests(suite.suites, file));
+    }
+
+    for (const spec of (suite.specs || [])) {
+      let status   = 'Not Executed';
+      let duration = 0;
+      let errorMsg = '';
+
+      if (Array.isArray(spec.tests) && spec.tests.length) {
+        const lastTest = spec.tests[spec.tests.length - 1];
+        if (Array.isArray(lastTest.results) && lastTest.results.length) {
+          const lastResult = lastTest.results[lastTest.results.length - 1];
+          duration = lastResult.duration || 0;
+
+          switch (lastResult.status) {
+            case 'passed':   status = 'Pass';         break;
+            case 'failed':   status = 'Fail';         break;
+            case 'timedOut': status = 'Blocked';      break;
+            case 'skipped':  status = 'Not Executed'; break;
+            default:         status = 'Fail';
+          }
+
+          // Extract error message
+          if (lastResult.error) {
+            errorMsg = (lastResult.error.message || String(lastResult.error)).slice(0, 500);
+          }
+        }
+      } else if (typeof spec.ok === 'boolean') {
+        status = spec.ok ? 'Pass' : 'Fail';
+      }
+
+      // Load screenshots from disk (written by ScreenshotHelper)
+      const screenshots = loadScreenshots(spec.title);
+
+      out.push({ zephyrKey, title: spec.title, status, duration, errorMsg, screenshots });
+    }
+  }
+  return out;
+}
+
+/**
+ * Load all step screenshots for a test from
+ * test-results/screenshots/<title-slug>/*.png — sorted alphabetically
+ * (which preserves step-01, step-02, ... ordering).
+ */
+function loadScreenshots(title) {
+  const slug = (title || 'test')
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 60)
+    .toLowerCase();
+  const dir = path.join(SCREENSHOTS_ROOT, slug);
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir)
+    .filter(f => f.endsWith('.png'))
+    .sort()
+    .map(f => ({
+      label: f.replace(/\.png$/, '').replace(/^step-\d+-/, '').replace(/-/g, ' '),
+      path:  path.join(dir, f)
+    }));
+}
+
+// ─── Base64 helper ────────────────────────────────────────────────────────────
+function toBase64(filePath) {
+  try {
+    return 'data:image/png;base64,' + fs.readFileSync(filePath).toString('base64');
+  } catch {
+    return '';
+  }
+}
+
+// ─── Duration formatter ───────────────────────────────────────────────────────
+function fmtDuration(ms) {
+  if (ms >= 60000) return `${(ms / 60000).toFixed(1)}m`;
+  if (ms >= 1000)  return `${(ms / 1000).toFixed(1)}s`;
+  return `${ms}ms`;
+}
+
+// ─── HTML builder ─────────────────────────────────────────────────────────────
+function buildHtml(tests, runDate, totalDuration) {
+  const total    = tests.length;
+  const passed   = tests.filter(t => t.status === 'Pass').length;
+  const failed   = tests.filter(t => t.status === 'Fail').length;
+  const blocked  = tests.filter(t => t.status === 'Blocked').length;
+  const notExec  = tests.filter(t => t.status === 'Not Executed').length;
+  const passRate = total ? Math.round((passed / total) * 100) : 0;
+
+  // ── Pie chart % (CSS conic-gradient) ──────────────────────────────────────
+  const pPass    = total ? (passed  / total) * 360 : 0;
+  const pFail    = total ? (failed  / total) * 360 : 0;
+  const pBlocked = total ? (blocked / total) * 360 : 0;
+  const pNotExec = total ? (notExec / total) * 360 : 0;
+
+  const pieGrad = [
+    `#4caf50 0deg ${pPass}deg`,
+    `#f44336 ${pPass}deg ${pPass + pFail}deg`,
+    `#ff9800 ${pPass + pFail}deg ${pPass + pFail + pBlocked}deg`,
+    `#9e9e9e ${pPass + pFail + pBlocked}deg 360deg`
+  ].join(', ');
+
+  // ── Test cards HTML ────────────────────────────────────────────────────────
+  const cards = tests.map((t, idx) => {
+    const statusClass = {
+      Pass: 'pass', Fail: 'fail', Blocked: 'blocked', 'Not Executed': 'not-exec'
+    }[t.status] || 'not-exec';
+
+    const statusIcon = { Pass: '✓', Fail: '✗', Blocked: '⊘', 'Not Executed': '○' }[t.status] || '○';
+
+    const screenshotHtml = t.screenshots.length
+      ? `<div class="screenshots">
+          ${t.screenshots.map(s => {
+            const b64 = toBase64(s.path);
+            return b64
+              ? `<figure class="screenshot-figure">
+                  <img src="${b64}" alt="${escHtml(s.label)}" loading="lazy" onclick="openLightbox(this)">
+                  <figcaption>${escHtml(s.label)}</figcaption>
+                </figure>`
+              : '';
+          }).join('')}
+        </div>`
+      : '<p class="no-screenshots">No step screenshots captured for this test.</p>';
+
+    const errorHtml = t.errorMsg
+      ? `<pre class="error-block">${escHtml(t.errorMsg)}</pre>`
+      : '';
+
+    return `
+    <details class="test-card ${statusClass}" id="test-${idx}">
+      <summary>
+        <span class="status-badge ${statusClass}">${statusIcon} ${t.status}</span>
+        <span class="tc-key">${t.zephyrKey}</span>
+        <span class="tc-title">${escHtml(t.title)}</span>
+        <span class="tc-duration">${fmtDuration(t.duration)}</span>
+      </summary>
+      <div class="card-body">
+        ${errorHtml}
+        <h4>Step Screenshots (${t.screenshots.length})</h4>
+        ${screenshotHtml}
+      </div>
+    </details>`;
+  }).join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OrangeHRM — Playwright Test Report</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+         background: #f0f2f5; color: #212121; }
+
+  /* ── Header ────────────────────────────────────────────────────────────── */
+  header {
+    background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+    color: #fff;
+    padding: 24px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  }
+  header h1 { font-size: 1.5rem; font-weight: 700; }
+  header h1 span { font-weight: 300; opacity: .75; font-size: 1rem; display: block; }
+  header .meta { text-align: right; font-size: .82rem; opacity: .8; line-height: 1.6; }
+
+  /* ── Summary bar ────────────────────────────────────────────────────────── */
+  .summary-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 24px 32px;
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .stat-card {
+    flex: 1 1 100px;
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 14px 20px;
+    text-align: center;
+  }
+  .stat-card .stat-value { font-size: 2rem; font-weight: 700; line-height: 1; }
+  .stat-card .stat-label { font-size: .75rem; text-transform: uppercase;
+                           letter-spacing: .06em; color: #757575; margin-top: 4px; }
+  .stat-card.pass   { border-color: #4caf50; }
+  .stat-card.pass   .stat-value { color: #4caf50; }
+  .stat-card.fail   { border-color: #f44336; }
+  .stat-card.fail   .stat-value { color: #f44336; }
+  .stat-card.blocked{ border-color: #ff9800; }
+  .stat-card.blocked .stat-value { color: #ff9800; }
+  .stat-card.total  { border-color: #1a237e; }
+  .stat-card.total  .stat-value { color: #1a237e; }
+
+  /* ── Pie chart ──────────────────────────────────────────────────────────── */
+  .pie-wrap { display: flex; align-items: center; gap: 16px; }
+  .pie {
+    width: 90px; height: 90px; border-radius: 50%;
+    background: conic-gradient(${pieGrad});
+    flex-shrink: 0;
+  }
+  .pie-legend { font-size: .78rem; line-height: 2; }
+  .pie-legend span { display: inline-block; width: 10px; height: 10px;
+                     border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+  .pass-dot { background: #4caf50; }
+  .fail-dot { background: #f44336; }
+  .blocked-dot { background: #ff9800; }
+  .notexec-dot { background: #9e9e9e; }
+
+  /* ── Progress bar ───────────────────────────────────────────────────────── */
+  .progress-wrap { padding: 0 32px 16px; background: #fff; }
+  .progress-bar-outer { height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; }
+  .progress-bar-inner { height: 100%; background: #4caf50;
+                        width: ${passRate}%; transition: width .5s; border-radius: 4px; }
+  .progress-label { font-size: .8rem; color: #757575; margin-top: 4px; }
+
+  /* ── Test cards ─────────────────────────────────────────────────────────── */
+  .tests-section { padding: 24px 32px; }
+  .tests-section h2 { font-size: 1.1rem; color: #37474f; margin-bottom: 16px; border-bottom: 2px solid #eceff1; padding-bottom: 8px; }
+
+  details.test-card {
+    background: #fff;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border-left: 5px solid #9e9e9e;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    overflow: hidden;
+    transition: box-shadow .2s;
+  }
+  details.test-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,.12); }
+  details.test-card.pass    { border-left-color: #4caf50; }
+  details.test-card.fail    { border-left-color: #f44336; }
+  details.test-card.blocked { border-left-color: #ff9800; }
+
+  details.test-card > summary {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+  }
+  details.test-card > summary::-webkit-details-marker { display: none; }
+  details[open] > summary { border-bottom: 1px solid #eceff1; }
+
+  .status-badge {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .status-badge.pass     { background: #e8f5e9; color: #1b5e20; }
+  .status-badge.fail     { background: #ffebee; color: #b71c1c; }
+  .status-badge.blocked  { background: #fff3e0; color: #e65100; }
+  .status-badge.not-exec { background: #f5f5f5; color: #616161; }
+
+  .tc-key      { font-size: .8rem; font-weight: 700; color: #1a237e; flex-shrink: 0; }
+  .tc-title    { flex: 1; font-size: .88rem; color: #212121; }
+  .tc-duration { font-size: .78rem; color: #9e9e9e; flex-shrink: 0; }
+
+  /* ── Card body ──────────────────────────────────────────────────────────── */
+  .card-body { padding: 18px 20px; }
+  .card-body h4 { font-size: .85rem; color: #546e7a; margin-bottom: 12px; text-transform: uppercase; letter-spacing: .05em; }
+
+  .error-block {
+    background: #fff5f5;
+    border: 1px solid #ffcdd2;
+    border-radius: 6px;
+    padding: 12px;
+    font-size: .78rem;
+    color: #b71c1c;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-bottom: 16px;
+  }
+
+  /* ── Screenshots ────────────────────────────────────────────────────────── */
+  .screenshots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .screenshot-figure {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fafafa;
+  }
+  .screenshot-figure img {
+    width: 100%;
+    display: block;
+    cursor: zoom-in;
+    transition: opacity .2s;
+  }
+  .screenshot-figure img:hover { opacity: .9; }
+  .screenshot-figure figcaption {
+    padding: 6px 10px;
+    font-size: .72rem;
+    color: #546e7a;
+    background: #f5f5f5;
+    border-top: 1px solid #e0e0e0;
+    text-transform: capitalize;
+  }
+  .no-screenshots { font-size: .82rem; color: #9e9e9e; font-style: italic; }
+
+  /* ── Lightbox ───────────────────────────────────────────────────────────── */
+  #lightbox {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.85);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 6px;
+                  box-shadow: 0 8px 40px rgba(0,0,0,.5); }
+
+  /* ── Footer ─────────────────────────────────────────────────────────────── */
+  footer { text-align: center; padding: 20px; font-size: .75rem; color: #9e9e9e; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>OrangeHRM Playwright Test Report
+      <span>PIM → Add Employee | SCRUM-5</span>
+    </h1>
+  </div>
+  <div class="meta">
+    <div>Run date: ${runDate}</div>
+    <div>Total duration: ${fmtDuration(totalDuration)}</div>
+    <div>Environment: https://opensource-demo.orangehrmlive.com</div>
+  </div>
+</header>
+
+<div class="summary-bar">
+  <div class="stat-card total">
+    <div class="stat-value">${total}</div>
+    <div class="stat-label">Total</div>
+  </div>
+  <div class="stat-card pass">
+    <div class="stat-value">${passed}</div>
+    <div class="stat-label">Passed</div>
+  </div>
+  <div class="stat-card fail">
+    <div class="stat-value">${failed}</div>
+    <div class="stat-label">Failed</div>
+  </div>
+  <div class="stat-card blocked">
+    <div class="stat-value">${blocked}</div>
+    <div class="stat-label">Blocked / Not Exec</div>
+  </div>
+  <div class="pie-wrap">
+    <div class="pie" title="Pass ${passRate}%"></div>
+    <div class="pie-legend">
+      <div><span class="pass-dot"></span>Pass &nbsp;${passed}</div>
+      <div><span class="fail-dot"></span>Fail &nbsp;${failed}</div>
+      <div><span class="blocked-dot"></span>Blocked &nbsp;${blocked}</div>
+      <div><span class="notexec-dot"></span>Not Exec &nbsp;${notExec}</div>
+    </div>
+  </div>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-bar-outer">
+    <div class="progress-bar-inner"></div>
+  </div>
+  <div class="progress-label">Pass rate: ${passRate}% (${passed}/${total})</div>
+</div>
+
+<section class="tests-section">
+  <h2>Test Results (${total} tests)</h2>
+  ${cards}
+</section>
+
+<!-- Lightbox overlay -->
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="screenshot">
+</div>
+
+<footer>Generated by scripts/generate-report.js &nbsp;·&nbsp; ${runDate}</footer>
+
+<script>
+  function openLightbox(img) {
+    document.getElementById('lightbox-img').src = img.src;
+    document.getElementById('lightbox').classList.add('open');
+    event.stopPropagation();
+  }
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+</script>
+</body>
+</html>`;
+}
+
+// ─── HTML escape ─────────────────────────────────────────────────────────────
+function escHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+function main() {
+  console.log('\n╔══════════════════════════════════════════════════╗');
+  console.log('║   Custom HTML Report Generator                   ║');
+  console.log('╚══════════════════════════════════════════════════╝\n');
+
+  if (!fs.existsSync(RESULTS_FILE)) {
+    console.error(`  ERROR: ${RESULTS_FILE} not found. Run tests first.`);
+    process.exit(1);
+  }
+
+  const raw  = JSON.parse(fs.readFileSync(RESULTS_FILE, 'utf8'));
+  const tests = collectTests(raw.suites || []);
+
+  // Calculate total duration from stats
+  const totalDuration = (raw.stats && raw.stats.duration) || 0;
+  const runDate       = (raw.stats && raw.stats.startTime)
+    ? new Date(raw.stats.startTime).toLocaleString()
+    : new Date().toLocaleString();
+
+  const total  = tests.length;
+  const passed = tests.filter(t => t.status === 'Pass').length;
+  const failed = tests.filter(t => t.status === 'Fail').length;
+
+  console.log(`  Tests: ${total}  |  Passed: ${passed}  |  Failed: ${failed}`);
+
+  // Count screenshots found
+  const totalShots = tests.reduce((acc, t) => acc + t.screenshots.length, 0);
+  console.log(`  Screenshots embedded: ${totalShots}`);
+
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+  const html = buildHtml(tests, runDate, totalDuration);
+  fs.writeFileSync(OUT_FILE, html, 'utf8');
+
+  const sizekb = Math.round(fs.statSync(OUT_FILE).size / 1024);
+  console.log(`\n  ✓ Report written: custom-report/index.html  (${sizekb} KB)`);
+  console.log(`\n  Open: custom-report/index.html\n`);
+}
+
+main();

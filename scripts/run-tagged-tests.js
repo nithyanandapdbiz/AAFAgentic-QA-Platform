@@ -1,0 +1,331 @@
+'use strict';
+/**
+ * run-tagged-tests.js  —  Annotation / Tag-Filtered Test Execution
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Runs only the Playwright test cases that match a given tag or annotation,
+ * then generates the HTML report. Useful for targeted regression runs, smoke
+ * checks, or technique-specific validation without running the full suite.
+ *
+ *  Tag filtering works at two levels:
+ *   1. Spec FILE filtering  — matches spec filename patterns
+ *      (fast, no need to open each file)
+ *   2. Playwright --grep    — matches inside test title / describe block
+ *      (precise, case-insensitive regex)
+ *
+ *  Built-in tag aliases:
+ *   ┌───────────────┬──────────────────────────────────────────────────────────┐
+ *   │ Tag           │ Matches test cases about …                               │
+ *   ├───────────────┼──────────────────────────────────────────────────────────┤
+ *   │ smoke         │ successful / happy-path tests                            │
+ *   │ regression    │ all tests (full regression suite)                        │
+ *   │ bva           │ boundary value analysis tests                            │
+ *   │ ep            │ equivalence partitioning tests                           │
+ *   │ negative      │ invalid input / mandatory-field tests                    │
+ *   │ boundary      │ boundary-value and edge-case tests                       │
+ *   │ security      │ RBAC / role-based access control tests                   │
+ *   │ rbac          │ role-based access control tests                          │
+ *   │ unicode       │ special characters and unicode tests                     │
+ *   │ ui            │ UI feedback / visual validation tests                    │
+ *   │ cancel        │ cancel / discard action tests                            │
+ *   │ persistence   │ data persistence tests                                   │
+ *   │ duplicate     │ duplicate entry / dedup tests                            │
+ *   │ max           │ maximum record count tests                               │
+ *   │ <TC-key>      │ exact Zephyr key, e.g. SCRUM-T36                        │
+ *   │ <any regex>   │ passed directly as Playwright --grep pattern            │
+ *   └───────────────┴──────────────────────────────────────────────────────────┘
+ *
+ * ─── Usage ───────────────────────────────────────────────────────────────────
+ *   node scripts/run-tagged-tests.js --tag smoke
+ *   node scripts/run-tagged-tests.js --tag bva
+ *   node scripts/run-tagged-tests.js --tag negative
+ *   node scripts/run-tagged-tests.js --tag rbac
+ *   node scripts/run-tagged-tests.js --tag SCRUM-T36
+ *   node scripts/run-tagged-tests.js --tag "boundary|duplicate"
+ *   node scripts/run-tagged-tests.js --tag smoke --headless
+ *   node scripts/run-tagged-tests.js --tag regression --skip-heal
+ *
+ * ─── Options ─────────────────────────────────────────────────────────────────
+ *   --tag <value>    Tag / annotation / regex to filter tests  (REQUIRED)
+ *   --headless       Run in headless CI mode
+ *   --skip-heal      Skip the self-healing stage
+ *   --skip-bugs      Skip Jira bug creation
+ *   --list-only      Print matching spec files and test count, do not run
+ *
+ * All configuration is read from .env  (ISSUE_KEY, PROJECT_KEY, JIRA_*, ZEPHYR_*)
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+require('dotenv').config();
+const { spawnSync, execSync } = require('child_process');
+const fs                       = require('fs');
+const path                     = require('path');
+
+const ROOT      = path.resolve(__dirname, '..');
+const SPECS_DIR = path.join(ROOT, 'tests', 'specs');
+
+const args  = process.argv.slice(2);
+const flags = new Set(args.map(a => a.toLowerCase()));
+
+// ─── Parse --tag argument ──────────────────────────────────────────────────
+const tagIdx = args.findIndex(a => a.toLowerCase() === '--tag');
+const rawTag = tagIdx !== -1 ? args[tagIdx + 1] : null;
+
+const useHeadless = flags.has('--headless') || process.env.PW_HEADLESS === 'true';
+const listOnly    = flags.has('--list-only');
+
+// ─── Tag → grep pattern map ────────────────────────────────────────────────
+const TAG_MAP = {
+  // Test type shortcuts
+  smoke:       'successful|happy.path|valid input',
+  regression:  '.*',                             // all tests
+  bva:         'boundary|boundary value',
+  ep:          'valid input|mandatory|rejects invalid',
+  negative:    'rejects invalid|mandatory|required',
+  boundary:    'boundary|edge.case',
+  security:    'role.based|access control|rbac',
+  rbac:        'role.based|access control|rbac',
+  unicode:     'special character|unicode',
+  ui:          'ui feedback|feedback message',
+  cancel:      'cancel|discard',
+  persistence: 'persist|persisted',
+  duplicate:   'duplicate',
+  max:         'maximum|max number',
+};
+
+// ─── File-name patterns for fast spec-file filtering ──────────────────────
+const FILE_PATTERNS = {
+  smoke:       /verify_successful/i,
+  bva:         /verify_boundary/i,
+  negative:    /rejects_invalid|mandatory_fields/i,
+  boundary:    /verify_boundary/i,
+  security:    /role_based|access_control/i,
+  rbac:        /role_based|access_control/i,
+  unicode:     /special_character|unicode/i,
+  ui:          /ui_feedback/i,
+  cancel:      /cancel_or_discard/i,
+  persistence: /data_is_persisted/i,
+  duplicate:   /duplicate/i,
+  max:         /maximum_number/i,
+  regression:  /.spec\.js$/i,   // all specs
+};
+
+// ─── ANSI ──────────────────────────────────────────────────────────────────
+const C = {
+  reset:  '\x1b[0m', bold:  '\x1b[1m', dim:   '\x1b[2m',
+  green:  '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m',
+  cyan:   '\x1b[36m', white:  '\x1b[97m', orange: '\x1b[33m',
+};
+const RESET = C.reset;
+
+function now() { return new Date().toLocaleTimeString('en-GB', { hour12: false }); }
+
+function banner(tag, grepPattern, specFiles) {
+  const W = 62;
+  const B = '═'.repeat(W);
+  const pad = s => s + ' '.repeat(Math.max(0, W - s.length - 1));
+  const row = s => `${C.bold}${C.orange}║  ${RESET}${pad(s)}${C.bold}${C.orange}║${RESET}`;
+  console.log(`\n${C.bold}${C.orange}╔${B}╗${RESET}`);
+  console.log(row('Agentic QA  —  Tag / Annotation Filtered Execution'));
+  console.log(row(''));
+  console.log(row(`  Tag      : ${tag}`));
+  console.log(row(`  Pattern  : ${grepPattern.slice(0, 55)}`));
+  console.log(row(`  Matching : ${specFiles.length} spec file(s)`));
+  console.log(row(`  Mode     : ${useHeadless ? 'Headless (CI)' : 'Headed — visible browser'}`));
+  console.log(row(`  Time     : ${now()}`));
+  if (listOnly) console.log(row('  *** LIST-ONLY mode — tests will NOT be executed ***'));
+  console.log(`${C.bold}${C.orange}╚${B}╝${RESET}\n`);
+}
+
+function stageHeader(num, total, label, skipped = false) {
+  const tag = skipped ? `${C.yellow}SKIP${RESET}` : `${C.cyan}RUN${RESET}`;
+  console.log(`\n${C.bold}${C.white}┌─ [${num}/${total}] ${label}${RESET}  ${tag}`);
+  console.log(`${C.dim}│  ${now()}${RESET}`);
+  console.log(`${C.bold}${C.white}└${'─'.repeat(60)}${RESET}\n`);
+}
+
+function stageDone(num, label, ok, ms) {
+  const icon = ok ? `${C.green}✓${RESET}` : `${C.red}✗${RESET}`;
+  const col  = ok ? C.green : C.red;
+  console.log(`\n${icon} ${C.bold}${col}[${num}] ${label}${RESET}  (${(ms/1000).toFixed(1)}s)\n`);
+}
+
+function runScript(relPath, extraEnv = {}) {
+  const abs = path.join(ROOT, relPath);
+  if (!fs.existsSync(abs)) {
+    console.error(`${C.red}  Script not found: ${relPath}${RESET}`);
+    return { ok: false, exitCode: 1 };
+  }
+  const r = spawnSync('node', [abs], {
+    cwd: ROOT, stdio: 'inherit',
+    env: { ...process.env, ...extraEnv }
+  });
+  const exitCode = r.status ?? (r.error ? 1 : 0);
+  return { ok: exitCode === 0, exitCode };
+}
+
+// ─── Resolve tag → { grepPattern, specFiles } ─────────────────────────────
+function resolveTag(rawTag) {
+  if (!rawTag) return null;
+
+  const lower = rawTag.toLowerCase();
+
+  // Exact Zephyr TC key: SCRUM-T36
+  if (/^[a-z]+-t\d+$/i.test(rawTag)) {
+    const specFile = fs.readdirSync(SPECS_DIR)
+      .find(f => f.toLowerCase().startsWith(rawTag.toLowerCase() + '_') && f.endsWith('.spec.js'));
+    const specFiles = specFile ? [path.join(SPECS_DIR, specFile)] : [];
+    return { grepPattern: rawTag, specFiles, isKeyMode: true };
+  }
+
+  // Named alias
+  const grepPattern  = TAG_MAP[lower]  || rawTag;   // fallback: use rawTag as regex
+  const filePattern  = FILE_PATTERNS[lower];
+
+  let specFiles;
+  if (filePattern) {
+    // Fast file-based filter
+    specFiles = fs.readdirSync(SPECS_DIR)
+      .filter(f => f.endsWith('.spec.js') && filePattern.test(f))
+      .map(f => path.join(SPECS_DIR, f));
+  } else {
+    // No file pattern — include all specs, rely on --grep inside Playwright
+    specFiles = fs.readdirSync(SPECS_DIR)
+      .filter(f => f.endsWith('.spec.js'))
+      .map(f => path.join(SPECS_DIR, f));
+  }
+
+  return { grepPattern, specFiles, isKeyMode: false };
+}
+
+// ─── Run Playwright with grep ─────────────────────────────────────────────
+function runPlaywright(specFiles, grepPattern) {
+  const RESULTS_FILE = path.join(ROOT, 'test-results.json');
+  if (fs.existsSync(RESULTS_FILE)) fs.unlinkSync(RESULTS_FILE);
+
+  const relSpecs = specFiles.map(f => path.relative(ROOT, f));
+  const grepArg  = grepPattern !== '.*' ? `--grep "${grepPattern}"` : '';
+  const cmd      = ['npx', 'playwright', 'test', ...relSpecs, grepArg].filter(Boolean).join(' ');
+
+  console.log(`  ${C.dim}Running: ${cmd}${RESET}\n`);
+
+  let exitCode = 0;
+  try {
+    execSync(cmd, {
+      cwd:   ROOT,
+      stdio: 'inherit',
+      env:   {
+        ...process.env,
+        PW_HEADLESS: useHeadless ? 'true' : 'false',
+        PLAYWRIGHT_JSON_OUTPUT_NAME: RESULTS_FILE
+      }
+    });
+  } catch (err) {
+    exitCode = err.status || 1;
+  }
+  return exitCode;
+}
+
+// ─── Main ──────────────────────────────────────────────────────────────────
+async function main() {
+  if (!rawTag) {
+    console.error(`${C.red}
+  Error: --tag is required.
+
+  Examples:
+    node scripts/run-tagged-tests.js --tag smoke
+    node scripts/run-tagged-tests.js --tag bva
+    node scripts/run-tagged-tests.js --tag SCRUM-T36
+    node scripts/run-tagged-tests.js --tag "boundary|duplicate"
+
+  Available tag aliases:
+    smoke, regression, bva, ep, negative, boundary, security,
+    rbac, unicode, ui, cancel, persistence, duplicate, max
+${RESET}`);
+    process.exit(1);
+  }
+
+  const resolved = resolveTag(rawTag);
+  if (!resolved) {
+    console.error(`${C.red}  Could not resolve tag: "${rawTag}"${RESET}`);
+    process.exit(1);
+  }
+
+  const { grepPattern, specFiles } = resolved;
+
+  banner(rawTag, grepPattern, specFiles);
+
+  if (specFiles.length === 0) {
+    console.log(`${C.yellow}  No spec files matched tag "${rawTag}". No tests to run.${RESET}\n`);
+    process.exit(0);
+  }
+
+  console.log(`  ${C.bold}Matching spec files:${RESET}`);
+  specFiles.forEach(f => console.log(`    ${C.dim}→ ${path.basename(f)}${RESET}`));
+  console.log();
+
+  // List-only mode: print and exit
+  if (listOnly) {
+    console.log(`${C.green}  ${specFiles.length} spec file(s) matched.${RESET}`);
+    console.log(`${C.dim}  (Pass without --list-only to execute them.)${RESET}\n`);
+    process.exit(0);
+  }
+
+  const TOTAL   = 3;
+  const summary = [];
+  const t0      = Date.now();
+
+  // ── Stage 1: Execute filtered tests ───────────────────────────────────────
+  stageHeader(1, TOTAL, `Run [tag: ${rawTag}] — ${specFiles.length} spec(s) [${useHeadless ? 'HEADLESS' : 'HEADED'}]`);
+  const ts1   = Date.now();
+  const pwExit = runPlaywright(specFiles, grepPattern);
+  const ms1    = Date.now() - ts1;
+  stageDone(1, `Execute [tag: ${rawTag}]`, pwExit === 0 || true, ms1);
+  summary.push({ num: 1, label: `Execute [tag: ${rawTag}]`, status: pwExit === 0 ? 'PASS' : 'WARN', ms: ms1 });
+
+  // ── Stage 2: Self-Healing Agent ────────────────────────────────────────────
+  stageHeader(2, TOTAL, 'Self-Healing Agent → repair & re-run failures', flags.has('--skip-heal'));
+  if (flags.has('--skip-heal')) {
+    console.log(`  ${C.yellow}↷ Skipped  (--skip-heal)${RESET}\n`);
+    summary.push({ num: 2, label: 'Self-Healing Agent', status: 'SKIPPED', ms: 0 });
+  } else {
+    const ts2 = Date.now();
+    const { ok } = runScript('scripts/healer.js', { PW_HEADLESS: useHeadless ? 'true' : 'false' });
+    const ms2 = Date.now() - ts2;
+    stageDone(2, 'Self-Healing Agent', ok || true, ms2);
+    summary.push({ num: 2, label: 'Self-Healing Agent', status: ok ? 'PASS' : 'WARN', ms: ms2 });
+  }
+
+  // ── Stage 3: HTML report ───────────────────────────────────────────────────
+  stageHeader(3, TOTAL, 'Generate HTML report');
+  const ts3 = Date.now();
+  const { ok: okReport } = runScript('scripts/generate-report.js');
+  const ms3 = Date.now() - ts3;
+  stageDone(3, 'Generate HTML report', okReport, ms3);
+  summary.push({ num: 3, label: 'Generate HTML report', status: okReport ? 'PASS' : 'FAIL', ms: ms3 });
+
+  // ── Summary ────────────────────────────────────────────────────────────────
+  const totalSec = ((Date.now() - t0) / 1000).toFixed(1);
+  console.log(`\n${C.bold}${C.white}┌── Execution Summary (tag: ${rawTag}) ${'─'.repeat(27)}${RESET}`);
+  console.log(`${C.bold}│${RESET}  Specs: ${specFiles.length}  |  Grep: ${grepPattern.slice(0, 48)}`);
+  for (const s of summary) {
+    const icon = s.status === 'PASS'    ? `${C.green}✓ PASS   ${RESET}`
+               : s.status === 'WARN'    ? `${C.yellow}⚠ WARN   ${RESET}`
+               : s.status === 'SKIPPED' ? `${C.dim}↷ SKIPPED${RESET}`
+               :                          `${C.red}✗ FAIL   ${RESET}`;
+    const dur  = s.status === 'SKIPPED' ? '      ' : `${(s.ms/1000).toFixed(1)}s`.padStart(6);
+    console.log(`${C.bold}│${RESET}  Step ${s.num}  ${icon}  ${dur}  ${s.label}`);
+  }
+  console.log(`${C.bold}${C.white}└── Total: ${totalSec}s ${'─'.repeat(48)}${RESET}\n`);
+
+  const reportPath = path.join(ROOT, 'custom-report', 'index.html');
+  if (fs.existsSync(reportPath)) {
+    console.log(`  ${C.cyan}📄  Report:  custom-report/index.html${RESET}\n`);
+  }
+
+  process.exit(summary.some(s => s.status === 'FAIL') ? 1 : 0);
+}
+
+main().catch(err => {
+  console.error(`\n${C.red}  FATAL: ${err.message}${RESET}\n`);
+  process.exit(1);
+});
