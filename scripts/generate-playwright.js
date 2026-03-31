@@ -75,6 +75,20 @@ async function fetchSteps(tcKey) {
   }
 }
 
+// ─── Mark a test case as Automated in Zephyr ─────────────────────────────────
+async function markAsAutomated(tcKey) {
+  try {
+    await axios.put(
+      `${ZEPHYR_BASE}/testcases/${tcKey}`,
+      { projectKey: PROJECT_KEY, automationStatus: 'Automated' },
+      { headers: zHeaders() }
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ─── Test-type detector ───────────────────────────────────────────────────────
 function detectType(name, labels) {
   const t = ((name || '') + ' ' + (labels || []).join(' ')).toLowerCase();
@@ -588,12 +602,14 @@ async function main() {
     const filePath = path.join(SPECS_DIR, fileName);
 
     fs.writeFileSync(filePath, content, 'utf8');
-    console.log(`→ ${fileName}`);
+    const marked = await markAsAutomated(tc.key);
+    console.log(`→ ${fileName}  ${marked ? '\x1b[32m[Automated ✓]\x1b[0m' : '\x1b[33m[mark failed]\x1b[0m'}`);
     written++;
   }
 
   // ── 4. Summary ────────────────────────────────────────────────────────────
   console.log(`\n  ✓ ${written} spec file(s) written to tests/specs/`);
+  console.log(`  ✓ ${written} test case(s) marked as Automated in Zephyr`);
   console.log(`\n  Run tests:`);
   console.log(`    npx playwright test\n`);
 }
