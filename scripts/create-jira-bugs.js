@@ -21,9 +21,10 @@
  */
 
 require('dotenv').config();
-const axios = require('axios');
-const fs    = require('fs');
-const path  = require('path');
+const axios    = require('axios');
+const FormData = require('form-data');
+const fs       = require('fs');
+const path     = require('path');
 
 const ROOT               = path.resolve(__dirname, '..');
 const RESULTS_FILE       = path.join(ROOT, 'test-results.json');
@@ -62,8 +63,9 @@ function collectFailures(suites, parentFile = '') {
     }
 
     for (const spec of (suite.specs || [])) {
-      let failed   = false;
-      let errorMsg = '';
+      let failed      = false;
+      let errorMsg    = '';
+      let screenshots = [];
 
       for (const t of (spec.tests || [])) {
         for (const r of (t.results || [])) {
@@ -72,6 +74,10 @@ function collectFailures(suites, parentFile = '') {
             errorMsg = r.error
               ? (r.error.message || (typeof r.error === 'string' ? r.error : JSON.stringify(r.error)))
               : '';
+            // Collect all screenshot attachments from this failed result
+            screenshots = (r.attachments || [])
+              .filter(a => a.contentType === 'image/png' && a.path && fs.existsSync(a.path))
+              .map(a => a.path);
             break;
           }
         }
@@ -82,7 +88,8 @@ function collectFailures(suites, parentFile = '') {
         failures.push({
           title: spec.title,
           error: String(errorMsg).slice(0, 800),
-          file
+          file,
+          screenshots
         });
       }
     }
@@ -135,6 +142,26 @@ function buildDescription(failure) {
       }
     ]
   };
+}
+
+// ─── Attach a screenshot file to a Jira issue ───────────────────────────────
+async function attachScreenshot(issueKey, screenshotPath) {
+  const form = new FormData();
+  form.append('file', fs.createReadStream(screenshotPath), {
+    filename: path.basename(screenshotPath),
+    contentType: 'image/png'
+  });
+  await axios.post(
+    `${JIRA_URL}/rest/api/3/issue/${issueKey}/attachments`,
+    form,
+    {
+      auth: jiraAuth(),
+      headers: {
+        ...form.getHeaders(),
+        'X-Atlassian-Token': 'no-check'
+      }
+    }
+  );
 }
 
 // ─── Create a single Jira bug issue ──────────────────────────────────────────
@@ -236,8 +263,26 @@ async function main() {
     try {
       const bug = await createBug(failure);
       await linkToParent(bug.key);
-      console.log(`${C.green}✓ ${bug.key}${C.reset}`);
-      created.push({ key: bug.key, title: failure.title });
+
+      // Attach screenshots to the bug
+      let screenshotCount = 0;
+      for (const screenshotPath of (failure.screenshots || [])) {
+        try {
+          await attachScreenshot(bug.key, screenshotPath);
+          screenshotCount++;
+        } catch (attachErr) {
+          const msg = attachErr.response
+            ? `HTTP ${attachErr.response.status}`
+            : attachErr.message;
+          console.log(`\n    ${C.yellow}⚠  Screenshot attach failed: ${msg}${C.reset}`);
+        }
+      }
+
+      const screenshotNote = screenshotCount > 0
+        ? ` ${C.dim}[${screenshotCount} screenshot(s) attached]${C.reset}`
+        : '';
+      console.log(`${C.green}✓ ${bug.key}${C.reset}${screenshotNote}`);
+      created.push({ key: bug.key, title: failure.title, screenshots: screenshotCount });
     } catch (err) {
       const msg = err.response
         ? `HTTP ${err.response.status} — ${JSON.stringify(err.response.data).slice(0, 100)}`
@@ -254,7 +299,8 @@ async function main() {
   if (created.length > 0) {
     console.log(`  ${C.bold}Created Bugs (linked to ${ISSUE_KEY}):${C.reset}`);
     for (const b of created) {
-      console.log(`    ${C.green}✓${C.reset} ${C.bold}${b.key}${C.reset}  ${b.title.slice(0, 60)}`);
+      const sc = b.screenshots > 0 ? `  ${C.dim}[${b.screenshots} screenshot(s)]${C.reset}` : '';
+      console.log(`    ${C.green}✓${C.reset} ${C.bold}${b.key}${C.reset}  ${b.title.slice(0, 60)}${sc}`);
     }
     console.log('');
   }
