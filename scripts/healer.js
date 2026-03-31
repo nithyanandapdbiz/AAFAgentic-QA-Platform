@@ -34,7 +34,7 @@ const HEALED_DIR         = path.join(ROOT, 'tests', 'healed');
 const HEALED_RESULTS     = path.join(ROOT, 'test-results-healed.json');
 
 const args      = process.argv.slice(2);
-const skipRun   = args.includes('--skip-run');
+const skipRun   = args.includes('--skip-run') || process.env.HEALER_SKIP_RUN === 'true';
 const headless  = args.includes('--headless') || process.env.PW_HEADLESS === 'true';
 
 // ─── ANSI ─────────────────────────────────────────────────────────────────────

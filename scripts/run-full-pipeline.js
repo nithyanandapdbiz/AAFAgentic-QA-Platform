@@ -128,7 +128,9 @@ const STAGES = [
     skip: () => flags.has('--skip-heal'),
     skipMsg: 'Healer skipped  (--skip-heal)',
     softFail: true,
-    extraEnv: () => ({ PW_HEADLESS: useHeadless ? 'true' : 'false' })
+    // Stage 3 (run-and-sync.js) already executed the full suite and wrote test-results.json.
+    // Pass --skip-run so the healer uses those results instead of re-running the entire suite.
+    extraEnv: () => ({ PW_HEADLESS: useHeadless ? 'true' : 'false', HEALER_SKIP_RUN: 'true' })
   },
   {
     num: 5, label: 'Auto-create Jira bugs for remaining failures',

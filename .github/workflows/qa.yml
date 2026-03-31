@@ -36,9 +36,12 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      # ── 5. Run QA orchestrator ────────────────────────────────────────────
-      - name: Run QA pipeline
-        run: node src/main.js
+      # ── 5. Run full QA pipeline ───────────────────────────────────────────
+      #       continue-on-error: true so test failures don't block artifact
+      #       upload and git push steps below.
+      - name: Run full QA pipeline
+        continue-on-error: true
+        run: node scripts/run-full-pipeline.js --headless
         env:
           ISSUE_KEY:          ${{ secrets.ISSUE_KEY }}
           PROJECT_KEY:        ${{ secrets.PROJECT_KEY }}
@@ -49,14 +52,7 @@ jobs:
           ZEPHYR_ACCESS_KEY:  ${{ secrets.ZEPHYR_ACCESS_KEY }}
           PW_HEADLESS:        'true'
 
-      # ── 6. Run Playwright tests ───────────────────────────────────────────
-      - name: Run Playwright tests
-        run: npx playwright test
-        continue-on-error: true   # allow pipeline to continue so results are committed
-        env:
-          PW_HEADLESS: 'true'
-
-      # ── 7. Upload Playwright HTML report as artifact ──────────────────────
+      # ── 6. Upload Playwright HTML report as artifact ──────────────────────
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
@@ -65,7 +61,7 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      # ── 8. Upload custom QA report as artifact ────────────────────────────
+      # ── 7. Upload custom QA report as artifact ────────────────────────────
       - name: Upload custom QA report
         if: always()
         uses: actions/upload-artifact@v4
@@ -74,7 +70,7 @@ jobs:
           path: custom-report/
           retention-days: 30
 
-      # ── 9. Commit generated artifacts back to main ────────────────────────
+      # ── 8. Commit generated artifacts back to main ────────────────────────
       #       [skip ci] prevents this commit from re-triggering the workflow.
       - name: Commit and push QA artifacts to main
         if: always()
