@@ -2,9 +2,11 @@
 /**
  * healer.js — Self-Healing Test Agent
  * ─────────────────────────────────────────────────────────────────────────────
- * Reads test-results.json, identifies failing Playwright tests, applies
- * automated healing strategies to their spec files, and re-runs only the
- * healed tests. Results are saved to test-results-healed.json.
+ * Stage 0  Run the full Playwright test suite (all specs in tests/specs/).
+ * Stage 1  Read test-results.json, identify every failing test.
+ * Stage 2  Apply the appropriate healing patch to each failing spec file.
+ * Stage 3  Re-run ONLY the healed specs to verify the fixes.
+ * Stage 4  Print summary + save test-results-healed.json.
  *
  * Healing Strategies applied per error type:
  *   timeout      → Extend default timeouts + add waitForLoadState('networkidle')
@@ -15,7 +17,9 @@
  *   general      → Extend timeouts + add networkidle wait (safe default)
  *
  * Usage:
- *   node scripts/healer.js
+ *   node scripts/healer.js                  ← run suite + heal
+ *   node scripts/healer.js --skip-run       ← heal only (reuse existing test-results.json)
+ *   node scripts/healer.js --headless       ← force headless browser
  */
 
 require('dotenv').config();
@@ -28,6 +32,10 @@ const RESULTS_FILE       = path.join(ROOT, 'test-results.json');
 const SPECS_DIR          = path.join(ROOT, 'tests', 'specs');
 const HEALED_DIR         = path.join(ROOT, 'tests', 'healed');
 const HEALED_RESULTS     = path.join(ROOT, 'test-results-healed.json');
+
+const args      = process.argv.slice(2);
+const skipRun   = args.includes('--skip-run');
+const headless  = args.includes('--headless') || process.env.PW_HEADLESS === 'true';
 
 // ─── ANSI ─────────────────────────────────────────────────────────────────────
 const C = {
@@ -160,6 +168,52 @@ async function main() {
   console.log(`${C.bold}${C.cyan}║        Self-Healing Test Agent                        ║${C.reset}`);
   console.log(`${C.bold}${C.cyan}╚══════════════════════════════════════════════════════╝${C.reset}\n`);
 
+  // ── Stage 0: Run full test suite ──────────────────────────────────────────
+  if (skipRun) {
+    console.log(`  ${C.dim}--skip-run: reusing existing test-results.json${C.reset}\n`);
+  } else {
+    console.log(`${C.bold}  Stage 0 — Execute Full Test Suite${C.reset}`);
+    console.log(`  ${'─'.repeat(54)}\n`);
+
+    const specsDir = SPECS_DIR;
+    const specFiles = fs.existsSync(specsDir)
+      ? fs.readdirSync(specsDir).filter(f => f.endsWith('.spec.js'))
+      : [];
+
+    if (specFiles.length === 0) {
+      console.log(`  ${C.yellow}⚠  No spec files found in tests/specs/ — nothing to run.${C.reset}\n`);
+      return;
+    }
+
+    console.log(`  Running ${specFiles.length} spec file(s) in tests/specs/`);
+    console.log(`  Mode    : ${headless ? 'Headless (CI)' : 'Headed — visible browser'}\n`);
+
+    // Remove stale results so we always get fresh output
+    if (fs.existsSync(RESULTS_FILE)) fs.unlinkSync(RESULTS_FILE);
+
+    let runExitCode = 0;
+    try {
+      execSync('npx playwright test', {
+        cwd:   ROOT,
+        stdio: 'inherit',
+        env:   {
+          ...process.env,
+          PW_HEADLESS:                 headless ? 'true' : (process.env.PW_HEADLESS || 'false'),
+          PLAYWRIGHT_JSON_OUTPUT_NAME: RESULTS_FILE
+        }
+      });
+    } catch (err) {
+      runExitCode = err.status || 1;
+    }
+
+    if (runExitCode === 0) {
+      console.log(`\n  ${C.green}✓  All tests passed — no healing needed.${C.reset}\n`);
+      return;
+    }
+
+    console.log(`\n  ${C.yellow}⚠  Suite finished with exit code ${runExitCode}. Analysing failures...${C.reset}\n`);
+  }
+
   // ── Read test results ──────────────────────────────────────────────────────
   if (!fs.existsSync(RESULTS_FILE)) {
     console.log(`  ${C.yellow}⚠  No results found at test-results.json. Nothing to heal.${C.reset}\n`);
@@ -174,6 +228,8 @@ async function main() {
     return;
   }
 
+  console.log(`${C.bold}  Stage 1 — Analyse Failures${C.reset}`);
+  console.log(`  ${'─'.repeat(54)}\n`);
   console.log(`  ${C.yellow}⚠  Found ${failing.length} failing test(s). Initiating healing...\n${C.reset}`);
 
   // Group by file so we heal each spec file once
@@ -185,7 +241,11 @@ async function main() {
     byFile.get(basename).push(t);
   }
 
-  // ── Prepare healed directory ───────────────────────────────────────────────
+  // ── Stage 2: Apply healing patches ────────────────────────────────────────
+  console.log(`${C.bold}  Stage 2 — Apply Healing Patches${C.reset}`);
+  console.log(`  ${'─'.repeat(54)}\n`);
+
+  // Prepare healed directory
   fs.mkdirSync(HEALED_DIR, { recursive: true });
 
   const healReport = [];
@@ -220,9 +280,11 @@ async function main() {
     return;
   }
 
-  // ── Re-run healed specs ────────────────────────────────────────────────────
+  // ── Stage 3: Re-run healed specs ──────────────────────────────────────────
   const healedFiles = healReport.map(r => path.join('tests', 'healed', r.filename)).join(' ');
-  console.log(`\n  ${C.bold}Re-running ${healReport.length} healed spec(s)...${C.reset}\n`);
+  console.log(`\n${C.bold}  Stage 3 — Re-run Healed Specs${C.reset}`);
+  console.log(`  ${'─'.repeat(54)}\n`);
+  console.log(`  ${C.bold}Re-running ${healReport.length} healed spec(s)...${C.reset}\n`);
 
   let healExitCode = 0;
   try {
@@ -233,7 +295,7 @@ async function main() {
         stdio: 'inherit',
         env:   {
           ...process.env,
-          PW_HEADLESS:                  process.env.PW_HEADLESS || 'false',
+          PW_HEADLESS:                  headless ? 'true' : (process.env.PW_HEADLESS || 'false'),
           PLAYWRIGHT_JSON_OUTPUT_NAME:  HEALED_RESULTS
         }
       }
@@ -247,8 +309,8 @@ async function main() {
     console.log(`\n  ${C.green}✓  Healed tests all passed.${C.reset}\n`);
   }
 
-  // ── Summary ────────────────────────────────────────────────────────────────
-  console.log(`${C.bold}  Heal Summary (${ healReport.length } file(s) patched):${C.reset}`);
+  // ── Stage 4: Summary ───────────────────────────────────────────────────────
+  console.log(`${C.bold}  Stage 4 — Heal Summary (${healReport.length} file(s) patched):${C.reset}`);
   for (const r of healReport) {
     console.log(`    ${C.cyan}•${C.reset} ${r.filename}`);
     console.log(`      Strategy : ${r.strategy}  |  Applied : ${r.applied.join(', ')}`);
