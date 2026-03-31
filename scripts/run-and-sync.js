@@ -170,6 +170,20 @@ async function updateExecution(execId, statusName, comment = '') {
   await axios.put(`${ZEPHYR_BASE}/testexecutions/${execId}`, body, { headers: zHeaders() });
 }
 
+// Mark a test case as Automated in Zephyr (called only after TC has been executed by Playwright)
+async function markAsAutomated(tcKey) {
+  try {
+    await axios.put(
+      `${ZEPHYR_BASE}/testcases/${tcKey}`,
+      { projectKey: PROJECT_KEY, automationStatus: 'Automated' },
+      { headers: zHeaders() }
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function statusIcon(s) {
   return s === 'Pass' ? '✓' : s === 'Fail' ? '✗' : s === 'Blocked' ? '⊘' : '○';
@@ -275,11 +289,19 @@ async function main() {
       execId = await createExecution(cycle.key, tcKey);
       await updateExecution(execId, status, comment);
       summary[status] = (summary[status] || 0) + 1;
-      rows.push({ tcKey, name: tc.name, status, synced: true });
+
+      // Mark as Automated only if Playwright actually ran this TC (Pass or Fail).
+      // TCs with no matching Playwright result (Not Executed) are not yet automated.
+      let autoMarked = null;
+      if (result) {
+        autoMarked = await markAsAutomated(tcKey);
+      }
+
+      rows.push({ tcKey, name: tc.name, status, synced: true, autoMarked });
     } catch (err) {
       summary.error++;
       const msg = (err.response && JSON.stringify(err.response.data)) || err.message;
-      rows.push({ tcKey, name: tc.name, status, synced: false, err: msg });
+      rows.push({ tcKey, name: tc.name, status, synced: false, autoMarked: null, err: msg });
     }
   }
 
@@ -289,11 +311,14 @@ async function main() {
   console.log('──────────────────────────────────────────────────────\n');
 
   for (const r of rows) {
-    const col   = statusColour(r.status);
-    const icon  = statusIcon(r.status);
-    const name  = (r.name || '').slice(0, 55).padEnd(55);
+    const col    = statusColour(r.status);
+    const icon   = statusIcon(r.status);
+    const name   = (r.name || '').slice(0, 50).padEnd(50);
     const synced = r.synced ? '' : ' ⚠ sync failed';
-    console.log(`  ${col}${icon}${RESET} ${r.tcKey.padEnd(10)} ${name} [${col}${r.status}${RESET}]${synced}`);
+    const auto   = r.autoMarked === true  ? ` \x1b[32m[Automated ✓]\x1b[0m`
+                 : r.autoMarked === false ? ` \x1b[33m[mark failed]\x1b[0m`
+                 : '';
+    console.log(`  ${col}${icon}${RESET} ${r.tcKey.padEnd(10)} ${name} [${col}${r.status}${RESET}]${auto}${synced}`);
     if (!r.synced && r.err) console.log(`          ${'\x1b[31m'}${r.err}${RESET}`);
   }
 
