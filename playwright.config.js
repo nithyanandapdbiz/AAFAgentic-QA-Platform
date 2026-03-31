@@ -4,10 +4,14 @@ const { defineConfig } = require('@playwright/test');
 // PW_HEADLESS=false or unset → headed UI browser (default for QA platform)
 const headless = process.env.PW_HEADLESS === 'true';
 
+// PW_GREP=<regex>  → filter tests by title regex (avoids shell pipe-splitting on Windows)
+const grepEnv = process.env.PW_GREP ? new RegExp(process.env.PW_GREP, 'i') : undefined;
+
 module.exports = defineConfig({
   testDir: './tests/specs',
   timeout: 90000,
   retries: 1,
+  grep: grepEnv,
   reporter: [
     ['list'],
     ['json',  { outputFile: 'test-results.json' }],

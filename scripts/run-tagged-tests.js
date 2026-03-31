@@ -41,12 +41,10 @@
  *   node scripts/run-tagged-tests.js --tag rbac
  *   node scripts/run-tagged-tests.js --tag SCRUM-T36
  *   node scripts/run-tagged-tests.js --tag "boundary|duplicate"
- *   node scripts/run-tagged-tests.js --tag smoke --headless
  *   node scripts/run-tagged-tests.js --tag regression --skip-heal
  *
  * ─── Options ─────────────────────────────────────────────────────────────────
  *   --tag <value>    Tag / annotation / regex to filter tests  (REQUIRED)
- *   --headless       Run in headless CI mode
  *   --skip-heal      Skip the self-healing stage
  *   --skip-bugs      Skip Jira bug creation
  *   --list-only      Print matching spec files and test count, do not run
@@ -56,7 +54,7 @@
  */
 
 require('dotenv').config();
-const { spawnSync, execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 const fs                       = require('fs');
 const path                     = require('path');
 
@@ -70,7 +68,7 @@ const flags = new Set(args.map(a => a.toLowerCase()));
 const tagIdx = args.findIndex(a => a.toLowerCase() === '--tag');
 const rawTag = tagIdx !== -1 ? args[tagIdx + 1] : null;
 
-const useHeadless = flags.has('--headless') || process.env.PW_HEADLESS === 'true';
+const useHeadless = false;  // always run headed — visible browser
 const listOnly    = flags.has('--list-only');
 
 // ─── Tag → grep pattern map ────────────────────────────────────────────────
@@ -203,26 +201,34 @@ function runPlaywright(specFiles, grepPattern) {
   if (fs.existsSync(RESULTS_FILE)) fs.unlinkSync(RESULTS_FILE);
 
   const relSpecs = specFiles.map(f => path.relative(ROOT, f));
-  const grepArg  = grepPattern !== '.*' ? `--grep "${grepPattern}"` : '';
-  const cmd      = ['npx', 'playwright', 'test', ...relSpecs, grepArg].filter(Boolean).join(' ');
 
-  console.log(`  ${C.dim}Running: ${cmd}${RESET}\n`);
+  // Pass the grep pattern via PW_GREP env var (read by playwright.config.js)
+  // instead of --grep on the CLI — this avoids Windows cmd.exe treating "|"
+  // as a pipe operator, which breaks multi-pattern regexes like
+  // "successful|happy.path|valid input".
+  // Use forward slashes in spec paths — Playwright treats CLI file args as
+  // globs/regexes and backslashes break matching on Windows.
+  const relSpecs2 = relSpecs.map(p => p.replace(/\\/g, '/'));
+  const pwArgs = ['playwright', 'test', ...relSpecs2];
 
-  let exitCode = 0;
-  try {
-    execSync(cmd, {
-      cwd:   ROOT,
-      stdio: 'inherit',
-      env:   {
-        ...process.env,
-        PW_HEADLESS: useHeadless ? 'true' : 'false',
-        PLAYWRIGHT_JSON_OUTPUT_NAME: RESULTS_FILE
-      }
-    });
-  } catch (err) {
-    exitCode = err.status || 1;
-  }
-  return exitCode;
+  const displayCmd = `npx ${pwArgs.join(' ')}${grepPattern && grepPattern !== '.*' ? ` --grep "${grepPattern}"` : ''}`;
+  console.log(`  ${C.dim}Running: ${displayCmd}${RESET}\n`);
+
+  const extraEnv = {
+    ...process.env,
+    PW_HEADLESS: 'false',
+    PLAYWRIGHT_JSON_OUTPUT_NAME: RESULTS_FILE
+  };
+  if (grepPattern && grepPattern !== '.*') extraEnv.PW_GREP = grepPattern;
+
+  const r = spawnSync('npx.cmd', pwArgs, {
+    cwd:   ROOT,
+    stdio: 'inherit',
+    shell: true,   // npx requires shell on Windows; PW_GREP env var carries the
+    env:   extraEnv  // pattern so the shell never sees pipe chars in CLI args
+  });
+
+  return r.status ?? (r.error ? 1 : 0);
 }
 
 // ─── Main ──────────────────────────────────────────────────────────────────
@@ -289,7 +295,7 @@ ${RESET}`);
     summary.push({ num: 2, label: 'Self-Healing Agent', status: 'SKIPPED', ms: 0 });
   } else {
     const ts2 = Date.now();
-    const { ok } = runScript('scripts/healer.js', { PW_HEADLESS: useHeadless ? 'true' : 'false' });
+    const { ok } = runScript('scripts/healer.js', { PW_HEADLESS: 'false' });
     const ms2 = Date.now() - ts2;
     stageDone(2, 'Self-Healing Agent', ok || true, ms2);
     summary.push({ num: 2, label: 'Self-Healing Agent', status: ok ? 'PASS' : 'WARN', ms: ms2 });
