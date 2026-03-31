@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "type": "commonjs",
   "scripts": {
-    "start": "node src/main.js",
+    "start": "node scripts/run-full-pipeline.js",
+    "start:server": "node src/main.js",
     "test": "npx playwright test",
     "qa": "node scripts/qa-run.js",
     "qa:run": "node scripts/qa-run.js --run-only",
