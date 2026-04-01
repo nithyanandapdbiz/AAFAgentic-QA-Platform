@@ -1,9 +1,8 @@
 const axios = require("axios");
 const config = require("../core/config");
 
-// "Bug" is not available in every Jira project template.
-// JIRA_BUG_ISSUETYPE lets you override (e.g. "Bug", "Defect"); defaults to "Task".
-const BUG_ISSUETYPE = process.env.JIRA_BUG_ISSUETYPE || "Task";
+// JIRA_BUG_ISSUETYPE lets you override (e.g. "Defect"); defaults to "Bug".
+const BUG_ISSUETYPE = process.env.JIRA_BUG_ISSUETYPE || "Bug";
 
 /**
  * Creates a Jira issue (bug) for the failing test and links it to the parent story.

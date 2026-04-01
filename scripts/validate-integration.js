@@ -75,7 +75,7 @@ async function check(label, fn) {
   });
 
   await check("GET /rest/api/3/issuetype — bug issuetype exists", async () => {
-    const bugType = process.env.JIRA_BUG_ISSUETYPE || "Task";
+    const bugType = process.env.JIRA_BUG_ISSUETYPE || "Bug";
     const r = await axios.get(`${jiraBase}/rest/api/3/project/${projectKey}/statuses`, { auth: jiraAuth });
     const names = r.data.map(t => t.name);
     if (!names.includes(bugType)) throw new Error(`"${bugType}" not in [${names.join(", ")}] — set JIRA_BUG_ISSUETYPE in .env`);
