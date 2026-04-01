@@ -9,7 +9,10 @@
     "qa": "node scripts/qa-run.js",
     "qa:run": "node scripts/qa-run.js --run-only",
     "qa:generate": "node scripts/qa-run.js --skip-story",
-    "qa:full": "node scripts/qa-run.js"
+    "qa:full": "node scripts/qa-run.js",
+    "report": "node scripts/generate-report.js",
+    "report:allure": "node scripts/generate-allure-report.js",
+    "allure:open": "npx allure open allure-report"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -19,6 +22,8 @@
     "winston": "^3.10.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.40.0"
+    "@playwright/test": "^1.40.0",
+    "allure-commandline": "^2.38.1",
+    "allure-playwright": "^3.6.0"
   }
 }

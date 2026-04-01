@@ -70,8 +70,26 @@ jobs:
           path: custom-report/
           retention-days: 30
 
-      # ── 8. Commit generated artifacts back to main ────────────────────────
-      #       [skip ci] prevents this commit from re-triggering the workflow.
+      # ── 8. Upload Allure results as artifact ─────────────────────────────
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: allure-results/
+          retention-days: 30
+
+      # ── 9. Upload Allure HTML report as artifact ──────────────────────────
+      - name: Upload Allure report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report/
+          retention-days: 30
+
+      # ── 10. Commit generated artifacts back to main ───────────────────────
+      #        [skip ci] prevents this commit from re-triggering the workflow.
       - name: Commit and push QA artifacts to main
         if: always()
         run: |
@@ -83,6 +101,8 @@ jobs:
           git add -f test-results/               2>/dev/null || true
           git add -f custom-report/              2>/dev/null || true
           git add -f playwright-report/          2>/dev/null || true
+          git add -f allure-results/             2>/dev/null || true
+          git add -f allure-report/              2>/dev/null || true
           git add -f .story-testcases.json       2>/dev/null || true
           git add -f tests/specs/                2>/dev/null || true
 

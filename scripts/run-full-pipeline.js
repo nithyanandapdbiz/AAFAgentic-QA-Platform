@@ -60,7 +60,7 @@ function banner() {
   console.log(row('Agentic QA Platform  —  Full Autonomous Pipeline'));
   console.log(row(''));
   console.log(row('  Jira Story  →  Test Plan  →  Zephyr TCs  →  Specs'));
-  console.log(row('       →  Execute  →  Heal  →  Bugs  →  Report'));
+  console.log(row('  →  Execute  →  Heal  →  Bugs  →  Report  →  Allure'));
   console.log(row(''));
   console.log(row(`  Story  : ${process.env.ISSUE_KEY || '(set ISSUE_KEY in .env)'}`));
   console.log(row(`  Mode   : ${useHeadless ? 'Headless (CI)' : 'Headed — visible browser'}`));
@@ -146,6 +146,13 @@ const STAGES = [
     script: 'scripts/generate-report.js',
     skip: () => false,
     softFail: false
+  },
+  {
+    num: 7, label: 'Generate Allure report',
+    desc: 'Converts allure-results/ into a rich interactive Allure HTML report',
+    script: 'scripts/generate-allure-report.js',
+    skip: () => false,
+    softFail: true   // non-critical — missing allure-results/ prints a warning and continues
   }
 ];
 
@@ -201,10 +208,15 @@ async function main() {
   }
   console.log(`${C.bold}${C.white}└── Total: ${totalSec}s ${'─'.repeat(48)}${C.reset}\n`);
 
-  const reportPath = path.join(ROOT, 'custom-report', 'index.html');
+  const reportPath  = path.join(ROOT, 'custom-report', 'index.html');
+  const allurePath  = path.join(ROOT, 'allure-report', 'index.html');
   if (fs.existsSync(reportPath)) {
-    console.log(`  ${C.cyan}📄  Report:  custom-report/index.html${C.reset}\n`);
+    console.log(`  ${C.cyan}📄  Custom Report : custom-report/index.html${C.reset}`);
   }
+  if (fs.existsSync(allurePath)) {
+    console.log(`  ${C.purple}📊  Allure Report : allure-report/index.html${C.reset}`);
+  }
+  console.log();
 
   process.exit(summary.some(s => s.status === 'FAIL') ? 1 : 0);
 }

@@ -15,7 +15,8 @@ module.exports = defineConfig({
   reporter: [
     ['list'],
     ['json',  { outputFile: 'test-results.json' }],
-    ['html',  { outputFolder: 'playwright-report', open: 'never' }]
+    ['html',  { outputFolder: 'playwright-report', open: 'never' }],
+    ['allure-playwright', { outputFolder: 'allure-results', detail: true, suiteTitle: true }]
   ],
   use: {
     baseURL:    'https://opensource-demo.orangehrmlive.com',

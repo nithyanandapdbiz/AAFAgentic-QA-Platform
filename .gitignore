@@ -19,6 +19,8 @@ test-results-healed.json
 custom-report/
 tests/healed/
 .story-testcases.json
+allure-results/
+allure-report/
 
 # ── OS ────────────────────────────────────────────────────────────────────
 .DS_Store

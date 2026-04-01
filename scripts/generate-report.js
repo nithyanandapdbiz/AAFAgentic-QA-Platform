@@ -8,9 +8,12 @@
  * Features:
  *  - Summary dashboard with pass/fail/blocked counts and a pie-chart
  *  - Per-test collapsible accordion cards (Pass = green, Fail = red)
- *  - Inline step-by-step screenshots embedded as base64
- *  - Error messages shown for failing tests
- *  - Zephyr test case key extracted from spec file name
+ *  - Step-by-step table with duration + pass/fail badge per step
+ *  - Failure step highlighted in red with inline error message
+ *  - Playwright-captured failure screenshot embedded as base64
+ *  - Video recording embedded as <video> element (WebM)
+ *  - Step screenshots from ScreenshotHelper also shown
+ *  - Allure report link in header (when allure-report/ exists)
  *
  * Usage:
  *   node scripts/generate-report.js
@@ -24,11 +27,13 @@ const RESULTS_FILE      = path.join(ROOT, 'test-results.json');
 const SCREENSHOTS_ROOT  = path.join(ROOT, 'test-results', 'screenshots');
 const OUT_DIR           = path.join(ROOT, 'custom-report');
 const OUT_FILE          = path.join(OUT_DIR, 'index.html');
+const ALLURE_DIR        = path.join(ROOT, 'allure-report');
 
 // ─── JSON walker ─────────────────────────────────────────────────────────────
 /**
- * Walk Playwright JSON suites and collect flat list of test records:
- *   { zephyrKey, title, status, duration, errorMsg, screenshots[] }
+ * Walk Playwright JSON suites and collect flat list of test records.
+ * Each record: { zephyrKey, title, status, duration, errorMsg,
+ *               steps[], failureScreenshot, videoPath, screenshots[] }
  */
 function collectTests(suites, parentFile = '') {
   const out = [];
@@ -45,6 +50,9 @@ function collectTests(suites, parentFile = '') {
       let status   = 'Not Executed';
       let duration = 0;
       let errorMsg = '';
+      let steps    = [];
+      let failureScreenshot = null;
+      let videoPath         = null;
 
       if (Array.isArray(spec.tests) && spec.tests.length) {
         const lastTest = spec.tests[spec.tests.length - 1];
@@ -62,17 +70,51 @@ function collectTests(suites, parentFile = '') {
 
           // Extract error message
           if (lastResult.error) {
-            errorMsg = (lastResult.error.message || String(lastResult.error)).slice(0, 500);
+            errorMsg = (lastResult.error.message || String(lastResult.error)).slice(0, 600);
+          }
+
+          // Extract steps array — flatten nested steps one level deep
+          function flattenSteps(rawSteps) {
+            const flat = [];
+            for (const s of (rawSteps || [])) {
+              flat.push(s);
+              if (Array.isArray(s.steps) && s.steps.length) {
+                for (const child of s.steps) flat.push(Object.assign({}, child, { _child: true }));
+              }
+            }
+            return flat;
+          }
+          const rawSteps = lastResult.steps || [];
+          steps = flattenSteps(rawSteps).map(s => ({
+            title:    s.title || '(step)',
+            duration: s.duration || 0,
+            error:    s.error ? (s.error.message || String(s.error)).slice(0, 300) : null,
+            child:    !!s._child
+          }));
+
+          // Extract Playwright-generated attachments (failure screenshot + video)
+          for (const att of (lastResult.attachments || [])) {
+            if (!att.path) continue;
+            const attPath = att.path.replace(/\\/g, '/');
+            if (att.contentType === 'image/png' && att.name === 'screenshot') {
+              failureScreenshot = attPath;
+            }
+            if (att.contentType === 'video/webm' && att.name === 'video') {
+              videoPath = attPath;
+            }
           }
         }
       } else if (typeof spec.ok === 'boolean') {
         status = spec.ok ? 'Pass' : 'Fail';
       }
 
-      // Load screenshots from disk (written by ScreenshotHelper)
+      // Load step screenshots from disk (written by ScreenshotHelper)
       const screenshots = loadScreenshots(spec.title);
 
-      out.push({ zephyrKey, title: spec.title, status, duration, errorMsg, screenshots });
+      out.push({
+        zephyrKey, title: spec.title, status, duration, errorMsg,
+        steps, failureScreenshot, videoPath, screenshots
+      });
     }
   }
   return out;
@@ -80,8 +122,7 @@ function collectTests(suites, parentFile = '') {
 
 /**
  * Load all step screenshots for a test from
- * test-results/screenshots/<title-slug>/*.png — sorted alphabetically
- * (which preserves step-01, step-02, ... ordering).
+ * test-results/screenshots/<title-slug>/*.png — sorted alphabetically.
  */
 function loadScreenshots(title) {
   const slug = (title || 'test')
@@ -100,14 +141,23 @@ function loadScreenshots(title) {
     }));
 }
 
-// ─── Base64 helper ────────────────────────────────────────────────────────────
-function toBase64(filePath) {
+// ─── Base64 helpers ───────────────────────────────────────────────────────────
+function toBase64Png(filePath) {
   try {
+    if (!filePath || !fs.existsSync(filePath)) return '';
     return 'data:image/png;base64,' + fs.readFileSync(filePath).toString('base64');
-  } catch {
-    return '';
-  }
+  } catch { return ''; }
 }
+
+function toBase64Webm(filePath) {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) return '';
+    return 'data:video/webm;base64,' + fs.readFileSync(filePath).toString('base64');
+  } catch { return ''; }
+}
+
+// kept for backward compat (old callers used toBase64)
+function toBase64(filePath) { return toBase64Png(filePath); }
 
 // ─── Duration formatter ───────────────────────────────────────────────────────
 function fmtDuration(ms) {
@@ -129,7 +179,6 @@ function buildHtml(tests, runDate, totalDuration) {
   const pPass    = total ? (passed  / total) * 360 : 0;
   const pFail    = total ? (failed  / total) * 360 : 0;
   const pBlocked = total ? (blocked / total) * 360 : 0;
-  const pNotExec = total ? (notExec / total) * 360 : 0;
 
   const pieGrad = [
     `#4caf50 0deg ${pPass}deg`,
@@ -137,6 +186,10 @@ function buildHtml(tests, runDate, totalDuration) {
     `#ff9800 ${pPass + pFail}deg ${pPass + pFail + pBlocked}deg`,
     `#9e9e9e ${pPass + pFail + pBlocked}deg 360deg`
   ].join(', ');
+
+  const allureLink = fs.existsSync(ALLURE_DIR)
+    ? `<a href="../allure-report/index.html" target="_blank" class="allure-btn">View Allure Report →</a>`
+    : '';
 
   // ── Test cards HTML ────────────────────────────────────────────────────────
   const cards = tests.map((t, idx) => {
@@ -146,8 +199,76 @@ function buildHtml(tests, runDate, totalDuration) {
 
     const statusIcon = { Pass: '✓', Fail: '✗', Blocked: '⊘', 'Not Executed': '○' }[t.status] || '○';
 
+    // ── Step table ──────────────────────────────────────────────────────────
+    let stepTableHtml = '';
+    if (t.steps && t.steps.length) {
+      const rows = t.steps.map((s, si) => {
+        const isFailed = !!s.error;
+        const rowClass = isFailed ? 'step-fail' : 'step-pass';
+        const badge    = isFailed
+          ? `<span class="step-badge fail">✗ FAILED</span>`
+          : `<span class="step-badge pass">✓ Pass</span>`;
+        const indent   = s.child ? 'style="padding-left:28px;color:#546e7a;"' : '';
+        const errRow   = isFailed
+          ? `<tr class="step-err-row"><td colspan="4"><pre class="step-error">${escHtml(s.error)}</pre></td></tr>`
+          : '';
+        return `<tr class="${rowClass}">
+          <td class="step-num">${si + 1}</td>
+          <td class="step-title" ${indent}>${escHtml(s.title)}</td>
+          <td class="step-dur">${fmtDuration(s.duration)}</td>
+          <td class="step-status">${badge}</td>
+        </tr>${errRow}`;
+      }).join('');
+
+      stepTableHtml = `
+      <div class="steps-section">
+        <h4>Test Steps (${t.steps.filter(s => !s.child).length})</h4>
+        <table class="steps-table">
+          <thead><tr>
+            <th>#</th><th>Step</th><th>Duration</th><th>Status</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    }
+
+    // ── Failure screenshot (Playwright-generated) ───────────────────────────
+    let failureScreenshotHtml = '';
+    if (t.failureScreenshot) {
+      const b64 = toBase64Png(t.failureScreenshot);
+      if (b64) {
+        failureScreenshotHtml = `
+      <div class="failure-media">
+        <h4>Failure Screenshot</h4>
+        <figure class="screenshot-figure failure-shot">
+          <img src="${b64}" alt="Failure screenshot" loading="lazy" onclick="openLightbox(this)">
+          <figcaption>Captured at point of failure</figcaption>
+        </figure>
+      </div>`;
+      }
+    }
+
+    // ── Video recording ─────────────────────────────────────────────────────
+    let videoHtml = '';
+    if (t.videoPath) {
+      const b64 = toBase64Webm(t.videoPath);
+      if (b64) {
+        videoHtml = `
+      <div class="failure-media">
+        <h4>Video Recording</h4>
+        <video class="test-video" controls preload="metadata">
+          <source src="${b64}" type="video/webm">
+          Your browser does not support WebM video.
+        </video>
+      </div>`;
+      }
+    }
+
+    // ── Step screenshots (ScreenshotHelper) ─────────────────────────────────
     const screenshotHtml = t.screenshots.length
-      ? `<div class="screenshots">
+      ? `<div class="steps-section">
+          <h4>Step Screenshots (${t.screenshots.length})</h4>
+          <div class="screenshots">
           ${t.screenshots.map(s => {
             const b64 = toBase64(s.path);
             return b64
@@ -157,8 +278,9 @@ function buildHtml(tests, runDate, totalDuration) {
                 </figure>`
               : '';
           }).join('')}
+          </div>
         </div>`
-      : '<p class="no-screenshots">No step screenshots captured for this test.</p>';
+      : '';
 
     const errorHtml = t.errorMsg
       ? `<pre class="error-block">${escHtml(t.errorMsg)}</pre>`
@@ -174,7 +296,9 @@ function buildHtml(tests, runDate, totalDuration) {
       </summary>
       <div class="card-body">
         ${errorHtml}
-        <h4>Step Screenshots (${t.screenshots.length})</h4>
+        ${stepTableHtml}
+        ${failureScreenshotHtml}
+        ${videoHtml}
         ${screenshotHtml}
       </div>
     </details>`;
@@ -204,6 +328,47 @@ function buildHtml(tests, runDate, totalDuration) {
   header h1 { font-size: 1.5rem; font-weight: 700; }
   header h1 span { font-weight: 300; opacity: .75; font-size: 1rem; display: block; }
   header .meta { text-align: right; font-size: .82rem; opacity: .8; line-height: 1.6; }
+  .allure-btn {
+    display: inline-block; margin-top: 8px; padding: 6px 14px;
+    background: #7c4dff; color: #fff; border-radius: 6px; font-size: .8rem;
+    font-weight: 600; text-decoration: none; letter-spacing: .03em;
+    transition: background .2s;
+  }
+  .allure-btn:hover { background: #651fff; }
+
+  /* ── Steps table ────────────────────────────────────────────────────────── */
+  .steps-section { margin-bottom: 20px; }
+  .steps-section h4 { font-size: .85rem; color: #546e7a; margin-bottom: 10px;
+                      text-transform: uppercase; letter-spacing: .05em; }
+  .steps-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  .steps-table thead tr { background: #eceff1; }
+  .steps-table th {
+    text-align: left; padding: 8px 10px; font-size: .75rem;
+    text-transform: uppercase; letter-spacing: .04em; color: #546e7a;
+    border-bottom: 2px solid #cfd8dc;
+  }
+  .steps-table td { padding: 8px 10px; border-bottom: 1px solid #f5f5f5; vertical-align: top; }
+  .steps-table .step-num { width: 36px; text-align: center; color: #9e9e9e; font-weight: 700; }
+  .steps-table .step-dur { width: 80px; text-align: right; color: #78909c; white-space: nowrap; }
+  .steps-table .step-status { width: 100px; text-align: center; }
+  .steps-table tr.step-fail td { background: #fff5f5; }
+  .steps-table tr.step-pass:hover td { background: #f9fbe7; }
+  .step-badge { padding: 2px 8px; border-radius: 10px; font-size: .7rem;
+                font-weight: 700; text-transform: uppercase; }
+  .step-badge.pass  { background: #e8f5e9; color: #1b5e20; }
+  .step-badge.fail  { background: #ffebee; color: #b71c1c; }
+  .step-err-row td { padding: 4px 10px 10px 46px; border-bottom: 1px solid #f5f5f5; }
+  .step-error { font-size: .76rem; color: #b71c1c; white-space: pre-wrap;
+                word-break: break-word; background: #fff0f0; padding: 8px;
+                border-radius: 4px; border: 1px solid #ffcdd2; }
+
+  /* ── Failure media ───────────────────────────────────────────────────────── */
+  .failure-media { margin-bottom: 20px; }
+  .failure-media h4 { font-size: .85rem; color: #546e7a; margin-bottom: 10px;
+                       text-transform: uppercase; letter-spacing: .05em; }
+  .failure-shot img { max-height: 400px; width: auto; }
+  .test-video { width: 100%; max-width: 720px; border-radius: 6px;
+                border: 1px solid #e0e0e0; background: #000; display: block; }
 
   /* ── Summary bar ────────────────────────────────────────────────────────── */
   .summary-bar {
@@ -380,6 +545,7 @@ function buildHtml(tests, runDate, totalDuration) {
     <div>Run date: ${runDate}</div>
     <div>Total duration: ${fmtDuration(totalDuration)}</div>
     <div>Environment: https://opensource-demo.orangehrmlive.com</div>
+    <div>${allureLink}</div>
   </div>
 </header>
 
@@ -482,9 +648,13 @@ function main() {
 
   console.log(`  Tests: ${total}  |  Passed: ${passed}  |  Failed: ${failed}`);
 
-  // Count screenshots found
-  const totalShots = tests.reduce((acc, t) => acc + t.screenshots.length, 0);
-  console.log(`  Screenshots embedded: ${totalShots}`);
+  // Count screenshots, steps, videos found
+  const totalShots  = tests.reduce((acc, t) => acc + t.screenshots.length, 0);
+  const totalSteps  = tests.reduce((acc, t) => acc + t.steps.length, 0);
+  const totalVideos = tests.filter(t => t.videoPath).length;
+  const totalFShots = tests.filter(t => t.failureScreenshot).length;
+  console.log(`  Steps collected: ${totalSteps}  |  Failure screenshots: ${totalFShots}  |  Videos: ${totalVideos}`);
+  console.log(`  Step screenshots embedded: ${totalShots}`);
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
   const html = buildHtml(tests, runDate, totalDuration);
