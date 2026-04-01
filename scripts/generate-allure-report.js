@@ -14,9 +14,9 @@
  *   allure-report/index.html   ← open this in a browser
  */
 
-const { execFileSync } = require('child_process');
-const path             = require('path');
-const fs               = require('fs');
+const { spawnSync, execFileSync } = require('child_process');
+const path                        = require('path');
+const fs                          = require('fs');
 
 const ROOT         = path.resolve(__dirname, '..');
 const RESULTS_DIR  = path.join(ROOT, 'allure-results');
@@ -41,10 +41,19 @@ console.log(`  allure-results/ contains ${resultCount} file(s)`);
 console.log(`  Generating report → allure-report/\n`);
 
 try {
-  execFileSync(ALLURE_BIN, ['generate', RESULTS_DIR, '--output', REPORT_DIR, '--clean'],
-               { stdio: 'inherit' });
+  if (process.platform === 'win32') {
+    // .cmd files require a shell on Windows. Build a single quoted string
+    // (no separate args array) so DEP0190 is never triggered.
+    const shellCmd = `"${ALLURE_BIN}" generate "${RESULTS_DIR}" --output "${REPORT_DIR}" --clean`;
+    const result = spawnSync(shellCmd, { stdio: 'inherit', shell: true });
+    if (result.error) throw result.error;
+    if (result.status !== 0) throw Object.assign(new Error(), { status: result.status });
+  } else {
+    execFileSync(ALLURE_BIN, ['generate', RESULTS_DIR, '--output', REPORT_DIR, '--clean'],
+                 { stdio: 'inherit' });
+  }
 } catch (err) {
-  console.error(`\n  ERROR: allure generate failed (exit ${err.status})`);
+  console.error(`\n  ERROR: allure generate failed (exit ${err.status ?? 1})`);
   process.exit(err.status || 1);
 }
 
