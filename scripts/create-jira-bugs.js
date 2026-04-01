@@ -17,7 +17,7 @@
  * Env vars required:
  *   JIRA_URL, JIRA_EMAIL, JIRA_API_TOKEN, PROJECT_KEY, ISSUE_KEY
  * Optional:
- *   JIRA_BUG_ISSUETYPE  (default: "Task")
+ *   JIRA_BUG_ISSUETYPE  (default: "Bug")
  */
 
 require('dotenv').config();
@@ -35,7 +35,7 @@ const JIRA_EMAIL  = process.env.JIRA_EMAIL;
 const JIRA_TOKEN  = process.env.JIRA_API_TOKEN;
 const PROJECT_KEY = process.env.PROJECT_KEY || 'SCRUM';
 const ISSUE_KEY   = process.env.ISSUE_KEY   || 'SCRUM-5';
-const BUG_TYPE    = process.env.JIRA_BUG_ISSUETYPE || 'Task';
+const BUG_TYPE    = process.env.JIRA_BUG_ISSUETYPE || 'Bug';
 
 // ─── ANSI ─────────────────────────────────────────────────────────────────────
 const C = {
