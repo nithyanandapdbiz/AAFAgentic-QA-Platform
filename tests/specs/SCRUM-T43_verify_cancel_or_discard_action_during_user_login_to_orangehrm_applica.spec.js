@@ -12,7 +12,7 @@
 // Credentials   : Admin / admin123
 // =============================================================================
 'use strict';
-const { test, expect }           = require('@playwright/test');
+const { test, expect }           = require('../fixtures/eyes.fixture');
 const { LoginPage }              = require('../pages/LoginPage');
 const { AddEmployeePage }        = require('../pages/AddEmployeePage');
 const { EmployeeListPage }       = require('../pages/EmployeeListPage');
@@ -26,8 +26,8 @@ test.describe('SCRUM-T43 | Verify cancel or discard action during User Login to 
     await page.context().clearCookies();
   });
 
-  test('Verify cancel or discard action during User Login to OrangeHRM Application', async ({ page }, testInfo) => {
-    const sh               = new ScreenshotHelper(page, testInfo);
+  test('Verify cancel or discard action during User Login to OrangeHRM Application', async ({ page, eyes }, testInfo) => {
+    const sh               = new ScreenshotHelper(page, testInfo, eyes);
     const loginPage        = new LoginPage(page);
     const addEmployeePage  = new AddEmployeePage(page);
     const employeeListPage = new EmployeeListPage(page);

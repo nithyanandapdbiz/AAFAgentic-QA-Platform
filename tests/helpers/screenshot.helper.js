@@ -37,11 +37,15 @@ class ScreenshotHelper {
   /**
    * @param {import('@playwright/test').Page}     page
    * @param {import('@playwright/test').TestInfo} testInfo
+   * @param {import('./eyes.helper').EyesHelper}  [eyes]   Optional Applitools Eyes instance.
+   *        When provided (and APPLITOOLS_API_KEY is set), a full-window visual
+   *        checkpoint is taken after each step and capture() call.
    */
-  constructor(page, testInfo) {
+  constructor(page, testInfo, eyes = null) {
     this.page     = page;
     this.testInfo = testInfo;
     this._counter = 0;
+    this._eyes    = eyes;   // EyesHelper — null means visual AI is disabled
 
     // Unique directory per test — derived from the test title
     const title = (testInfo.title || 'test')
@@ -66,6 +70,8 @@ class ScreenshotHelper {
     return test.step(`${num}. ${label}`, async () => {
       await fn();
       await this._capture(`step-${num}-${label}`);
+      // Visual AI checkpoint — no-op when eyes is null or API key is absent
+      if (this._eyes) await this._eyes.check(`${num}. ${label}`);
     });
   }
 
@@ -76,6 +82,7 @@ class ScreenshotHelper {
    */
   async capture(label) {
     await this._capture(label);
+    if (this._eyes) await this._eyes.check(label);
   }
 
   // ── Internal ──────────────────────────────────────────────────────────────
