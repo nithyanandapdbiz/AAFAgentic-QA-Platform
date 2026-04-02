@@ -21,6 +21,7 @@ tests/healed/
 .story-testcases.json
 allure-results/
 allure-report/
+.features-gen/
 
 # ── OS ────────────────────────────────────────────────────────────────────
 .DS_Store

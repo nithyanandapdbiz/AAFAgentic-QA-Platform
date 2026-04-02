@@ -6,6 +6,9 @@
     "start": "node scripts/run-full-pipeline.js",
     "start:server": "node src/main.js",
     "test": "npx playwright test",
+    "test:bdd": "npx bddgen && cross-env BDD=true npx playwright test",
+    "test:bdd:headed": "npx bddgen && cross-env BDD=true PW_HEADLESS=false npx playwright test",
+    "bddgen": "npx bddgen",
     "qa": "node scripts/qa-run.js",
     "qa:run": "node scripts/qa-run.js --run-only",
     "qa:generate": "node scripts/qa-run.js --skip-story",
@@ -23,8 +26,11 @@
   },
   "devDependencies": {
     "@applitools/eyes-playwright": "^1.46.3",
+    "@cucumber/cucumber": "^12.7.0",
     "@playwright/test": "^1.40.0",
     "allure-commandline": "^2.38.1",
-    "allure-playwright": "^3.6.0"
+    "allure-playwright": "^3.6.0",
+    "cross-env": "^10.1.0",
+    "playwright-bdd": "^8.5.0"
   }
 }
