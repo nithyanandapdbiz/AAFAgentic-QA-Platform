@@ -44,6 +44,68 @@ function info(label, value) {
   console.log(`   ${DIM}${label}:${RESET} ${value}`);
 }
 
+// ── Cucumber feature file generator ───────────────────────────────
+/**
+ * Writes a .feature file for each test case.
+ * Each scenario is tagged with its Zephyr key (@SCRUM-T36) and its labels.
+ * Steps are written in Given/When/Then format using tc.gwt[].
+ *
+ * @param {Array}  testCases  - array of { title, gwt[], tags[], description }
+ * @param {Array}  keys       - Zephyr keys in same order as testCases
+ * @param {string} storyKey   - e.g. "SCRUM-6"
+ * @param {string} storySummary - e.g. "User Login to OrangeHRM Application"
+ */
+function generateCucumberFeatures(testCases, keys, storyKey, storySummary) {
+  const featuresDir = path.join(ROOT, "tests", "features", "employee");
+  fs.mkdirSync(featuresDir, { recursive: true });
+
+  const written = [];
+
+  testCases.forEach((tc, idx) => {
+    const zephyrKey = keys[idx];
+    if (!zephyrKey || !tc.gwt) return;
+
+    // Build tag line: @ZephyrKey + labels
+    const labels = (tc.tags || []).filter(t => t !== storyKey.toLowerCase());
+    const tagLine = [`@${zephyrKey}`, ...labels.map(l => `@${l}`)].join(' ');
+
+    // Build GWT step lines
+    const stepLines = tc.gwt.map(s => `    ${s.keyword} ${s.text}`).join('\n');
+
+    const slug = zephyrKey.replace(/[^a-zA-Z0-9]/g, '_');
+    const content =
+`# =============================================================================
+# Zephyr Test Case : ${zephyrKey}
+# Story            : ${storyKey} — ${storySummary}
+# Title            : ${tc.title}
+# Design Technique : ${tc.designTechnique || ''}
+# Labels           : ${(tc.tags || []).join(', ')}
+# Auto-generated   : run-story.js → Zephyr → Cucumber (GWT)
+# =============================================================================
+
+Feature: ${zephyrKey} ${storySummary} — ${tc.title}
+
+  Background:
+    Given the browser is open at the OrangeHRM application
+
+  ${tagLine}
+  Scenario: ${tc.title}
+${stepLines}
+`;
+
+    const filename = `${slug}_${tc.title
+      .replace(/[^a-zA-Z0-9 ]/g, '')
+      .replace(/\s+/g, '_')
+      .slice(0, 60)
+      .toLowerCase()}.feature`;
+    const filePath = path.join(featuresDir, filename);
+    fs.writeFileSync(filePath, content, 'utf8');
+    written.push({ zephyrKey, filename });
+  });
+
+  return written;
+}
+
 // ── main ────────────────────────────────────────────────────────────
 (async () => {
   if (!issueKey) {
@@ -132,6 +194,14 @@ function info(label, value) {
           const total = result.total ?? (result.values || []).length;
           info("Total test cases in project", total);
         } catch (_) { /* informational only — ignore */ }
+        // Generate Cucumber feature files from existing Zephyr TCs
+        header("Step 5 — Generate Cucumber Feature Files (GWT)");
+        step("🥒", "Writing .feature files from existing Zephyr test cases...");
+        const storySummaryEarly = (story.fields || {}).summary || issueKey;
+        // Re-order alreadyExist to align with existingKeys order
+        const written = generateCucumberFeatures(alreadyExist, existingKeys, issueKey, storySummaryEarly);
+        written.forEach(w => info(`  ${GREEN}✓${RESET} ${w.zephyrKey}`, w.filename));
+        info("Feature files written", written.length);
         console.log(`\n${BOLD}${"═".repeat(54)}${RESET}\n`);
         process.exit(0);
       }
@@ -215,6 +285,20 @@ function info(label, value) {
       JSON.stringify({ issueKey, keys: allKeys }, null, 2)
     );
     info("Handoff written", `.story-testcases.json (${allKeys.length} keys)`);
+  }
+
+  // Generate Cucumber feature files — map each created TC to its Zephyr key
+  if (created.length > 0) {
+    header("Step 7 — Generate Cucumber Feature Files (GWT)");
+    step("🥒", `Writing .feature files for ${created.length} new test case(s)...`);
+    const storySummaryFinal = (story.fields || {}).summary || issueKey;
+    // Align toCreate with created keys (some may have failed, so filter by title)
+    const createdByTitle = new Map(created.map(c => [c.title.toLowerCase(), c.key]));
+    const alignedTCs   = toCreate.filter(tc => createdByTitle.has(tc.title.toLowerCase()));
+    const alignedKeys  = alignedTCs.map(tc => createdByTitle.get(tc.title.toLowerCase()));
+    const written = generateCucumberFeatures(alignedTCs, alignedKeys, issueKey, storySummaryFinal);
+    written.forEach(w => console.log(`     ${GREEN}✓${RESET} ${w.zephyrKey}  ${DIM}${w.filename}${RESET}`));
+    info("Feature files written", written.length);
   }
 
   console.log(`\n${BOLD}${"═".repeat(54)}${RESET}\n`);

@@ -10,7 +10,7 @@ Feature: SCRUM-T33 Employee Creation - Data Persistence
   Background:
     Given the browser is open at the OrangeHRM application
 
-  @persistence @state-transition
+  @SCRUM-T33 @persistence @state-transition
   Scenario: Verify employee first name and last name are persisted correctly after save
     When I log in as HR Admin
     And I navigate to the Add Employee form

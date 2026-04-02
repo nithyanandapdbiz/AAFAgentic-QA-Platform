@@ -11,7 +11,7 @@ Feature: SCRUM-T39 Employee Creation - Boundary Value Analysis
   Background:
     Given the browser is open at the OrangeHRM application
 
-  @boundary @bva @edge-case
+  @SCRUM-T39 @boundary @bva @edge-case
   Scenario: BVA-1 Verify minimum boundary value - single character names are accepted
     When I log in as HR Admin
     And I navigate to the Add Employee form
@@ -19,7 +19,7 @@ Feature: SCRUM-T39 Employee Creation - Boundary Value Analysis
     And I submit the employee form
     Then the page URL should not contain an error
 
-  @boundary @bva @edge-case
+  @SCRUM-T39 @boundary @bva @edge-case
   Scenario: BVA-4 Verify maximum boundary value - 50-character names are accepted
     When I log in as HR Admin
     And I navigate to the Add Employee form
@@ -27,7 +27,7 @@ Feature: SCRUM-T39 Employee Creation - Boundary Value Analysis
     And I submit the employee form
     Then the page URL should not contain an error
 
-  @boundary @bva @edge-case
+  @SCRUM-T39 @boundary @bva @edge-case
   Scenario: BVA-5 Verify over-maximum boundary - 101-character names do not cause a system error
     When I log in as HR Admin
     And I navigate to the Add Employee form

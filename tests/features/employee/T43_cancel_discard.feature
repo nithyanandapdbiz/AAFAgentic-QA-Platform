@@ -10,7 +10,7 @@ Feature: SCRUM-T43 Employee Creation - Cancel or Discard Action
   Background:
     Given the browser is open at the OrangeHRM application
 
-  @cancel @negative
+  @SCRUM-T43 @cancel @negative
   Scenario: Verify cancelling the Add Employee form does not persist partially entered data
     When I log in as HR Admin
     And I navigate to the Add Employee form

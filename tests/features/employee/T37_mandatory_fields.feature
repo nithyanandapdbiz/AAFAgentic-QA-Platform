@@ -10,7 +10,7 @@ Feature: SCRUM-T37 Employee Creation - Mandatory Fields Validation
   Background:
     Given the browser is open at the OrangeHRM application
 
-  @negative @validation @required-fields @ep-empty
+  @SCRUM-T37 @negative @validation @required-fields @ep-empty
   Scenario: Verify mandatory fields are enforced when all required fields are empty
     When I log in as HR Admin
     And I navigate to the Add Employee form

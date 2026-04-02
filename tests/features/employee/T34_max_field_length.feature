@@ -10,7 +10,7 @@ Feature: SCRUM-T34 Employee Creation - Maximum Field Length
   Background:
     Given the browser is open at the OrangeHRM application
 
-  @boundary @bva @max-length
+  @SCRUM-T34 @boundary @bva @max-length
   Scenario: Verify single-character names are accepted (minimum field length)
     When I log in as HR Admin
     And I navigate to the Add Employee form
@@ -18,7 +18,7 @@ Feature: SCRUM-T34 Employee Creation - Maximum Field Length
     And I submit the employee form
     Then the page URL should not contain an error
 
-  @boundary @bva @max-length
+  @SCRUM-T34 @boundary @bva @max-length
   Scenario: Verify 50-character names are accepted (maximum allowed field length)
     When I log in as HR Admin
     And I navigate to the Add Employee form
@@ -26,7 +26,7 @@ Feature: SCRUM-T34 Employee Creation - Maximum Field Length
     And I submit the employee form
     Then the page URL should not contain an error
 
-  @boundary @bva @max-length
+  @SCRUM-T34 @boundary @bva @max-length
   Scenario: Verify 101-character names do not cause a system error (over-maximum)
     When I log in as HR Admin
     And I navigate to the Add Employee form

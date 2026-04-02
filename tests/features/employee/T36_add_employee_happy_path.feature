@@ -10,7 +10,7 @@ Feature: SCRUM-T36 Employee Creation - Happy Path
   Background:
     Given the browser is open at the OrangeHRM application
 
-  @smoke @happy-path @ep-valid
+  @SCRUM-T36 @smoke @happy-path @ep-valid
   Scenario: Verify successful employee creation with valid inputs
     When I log in as HR Admin
     And I navigate to the Add Employee form

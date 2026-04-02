@@ -10,7 +10,7 @@ Feature: SCRUM-T40 Employee Creation - Duplicate Prevention
   Background:
     Given the browser is open at the OrangeHRM application
 
-  @duplicate @negative @data-integrity
+  @SCRUM-T40 @duplicate @negative @data-integrity
   Scenario: Verify the system prevents or handles a duplicate Employee ID gracefully
     When I log in as HR Admin
     And I navigate to the Add Employee form

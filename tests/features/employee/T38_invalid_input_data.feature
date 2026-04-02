@@ -10,7 +10,7 @@ Feature: SCRUM-T38 Employee Creation - Invalid Input Data
   Background:
     Given the browser is open at the OrangeHRM application
 
-  @negative @invalid-data @ep-invalid @security-eg
+  @SCRUM-T38 @negative @invalid-data @ep-invalid @security-eg
   Scenario: Verify system handles numeric-only input in name fields without crashing
     When I log in as HR Admin
     And I navigate to the Add Employee form
@@ -18,7 +18,7 @@ Feature: SCRUM-T38 Employee Creation - Invalid Input Data
     And I submit the employee form
     Then the page URL should not contain an error
 
-  @negative @invalid-data @ep-invalid
+  @SCRUM-T38 @negative @invalid-data @ep-invalid
   Scenario: Verify system handles space-padded name input without crashing
     When I log in as HR Admin
     And I navigate to the Add Employee form

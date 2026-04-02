@@ -1,5 +1,41 @@
 const { extractText } = require("./planner.agent");
 
+// ─── GWT step classifier ──────────────────────────────────────────────────────
+/**
+ * Converts a flat step array into Given/When/Then/And steps.
+ *
+ * Classification rules (applied in order):
+ *   Given  — pre-conditions, setup, navigation prerequisites
+ *   When   — actions, user interactions (click, enter, submit, navigate TO)
+ *   Then   — verifications, assertions, post-condition checks
+ *   And    — continuation of the previous keyword category
+ *
+ * Returns: array of { keyword, text, description } objects.
+ * `description` is the GWT-prefixed string stored in Zephyr.
+ */
+function stepsToGWT(steps) {
+  const givenSignals = /pre-condition|user is logged|browser is open|navigate.*login|start.*clean|clear.*session/i;
+  const thenSignals  = /verify|assert|confirm|check|ensure|should|must|expect|no.*record|is displayed|is visible|redirects|remains|not.*contain|not.*match/i;
+  const whenSignals  = /enter|fill|click|submit|navigate to|attempt|perform|open|log in|clear|set|select|search/i;
+
+  let lastKeyword = 'Given';
+  return steps.map((s, i) => {
+    const text = typeof s === 'string' ? s : (s.description || s.text || String(s));
+    let keyword;
+    if (i === 0 || givenSignals.test(text)) {
+      keyword = 'Given';
+    } else if (thenSignals.test(text)) {
+      keyword = 'Then';
+    } else if (whenSignals.test(text)) {
+      keyword = 'When';
+    } else {
+      keyword = lastKeyword === 'Given' ? 'When' : (lastKeyword === 'When' ? 'And' : 'And');
+    }
+    lastKeyword = keyword === 'And' ? lastKeyword : keyword;
+    return { keyword, text, description: `${keyword} ${text}` };
+  });
+}
+
 /**
  * QA Agent — rule-based test case generator (no external AI required).
  *
@@ -339,7 +375,11 @@ async function generate(story, plan) {
   const techniques = (plan && plan.designTechniques) || [];
   const techNote   = techniques.length > 0 ? `Techniques: ${techniques.join(', ')}` : '';
 
-  const testCases = TEMPLATES.map(t => t.build(subject));
+  const testCases = TEMPLATES.map(t => {
+    const tc = t.build(subject);
+    tc.gwt = stepsToGWT(tc.steps);
+    return tc;
+  });
 
   // Annotate each test case with planner technique context if available
   if (techNote) {
@@ -351,7 +391,7 @@ async function generate(story, plan) {
 
   // Conditionally add a security / RBAC test case
   if (SECURITY_KEYWORDS.some(k => allText.includes(k))) {
-    testCases.push({
+    const rbacTc = {
       title: `Verify role-based access control for ${subject}`,
       description: `Ensure only authorised roles can perform ${subject}. Uses Decision Table technique across role combinations.`,
       designTechnique: "Decision Table (DT) — Role × Permission matrix",
@@ -373,13 +413,15 @@ async function generate(story, plan) {
       expected: `Only Admin can perform ${subject}. All other roles are denied with a clear, appropriate message. No privilege escalation is possible.`,
       priority: "High",
       tags: ["security", "authorization", "rbac", "decision-table"]
-    });
+    };
+    rbacTc.gwt = stepsToGWT(rbacTc.steps);
+    testCases.push(rbacTc);
   }
 
   // Add acceptance-criteria test case if present in the story
   const ac = extractText(fields.customfield_10016) || extractText(fields.customfield_10014);
   if (ac && ac.trim().length > 10) {
-    testCases.push({
+    const acTc = {
       title: `Verify all acceptance criteria are met for ${subject}`,
       description: `End-to-end validation of the story against its defined acceptance criteria using Use Case / Scenario technique.`,
       designTechnique: "Use Case / Scenario-based (UC) — Acceptance Criteria validation",
@@ -396,10 +438,12 @@ async function generate(story, plan) {
       expected: `All acceptance criteria defined in the story are satisfied. Each criterion maps to a passing test condition.`,
       priority: "High",
       tags: ["acceptance-criteria", "regression", "use-case"]
-    });
+    };
+    acTc.gwt = stepsToGWT(acTc.steps);
+    testCases.push(acTc);
   }
 
   return testCases;
 }
 
-module.exports = { generate };
+module.exports = { generate, stepsToGWT };

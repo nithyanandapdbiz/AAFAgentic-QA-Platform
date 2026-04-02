@@ -24,14 +24,18 @@ async function createTestCase(tc) {
   );
   const { id, key } = res.data;
 
-  // Attach steps if present
+  // Attach steps — use GWT-prefixed descriptions when available
   if (tc.steps && tc.steps.length > 0) {
+    const gwtSteps = tc.gwt && tc.gwt.length === tc.steps.length ? tc.gwt : null;
     await axios.post(
       `${config.zephyr.baseUrl}/testcases/${key}/teststeps`,
       {
         mode: "OVERWRITE",
-        items: tc.steps.map(s => ({
-          inline: { description: s, expectedResult: tc.expected || "" }
+        items: tc.steps.map((s, i) => ({
+          inline: {
+            description: gwtSteps ? gwtSteps[i].description : s,
+            expectedResult: tc.expected || ""
+          }
         }))
       },
       { headers: zephyrHeaders() }

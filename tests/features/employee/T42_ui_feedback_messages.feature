@@ -10,7 +10,7 @@ Feature: SCRUM-T42 Employee Creation - UI Feedback Messages
   Background:
     Given the browser is open at the OrangeHRM application
 
-  @ui-feedback @smoke
+  @SCRUM-T42 @ui-feedback @smoke
   Scenario: Verify success feedback is shown after valid employee submission
     When I log in as HR Admin
     And I navigate to the Add Employee form
@@ -19,7 +19,7 @@ Feature: SCRUM-T42 Employee Creation - UI Feedback Messages
     Then I should be redirected to the Personal Details page
     And the employee profile header should be visible
 
-  @ui-feedback @negative @validation
+  @SCRUM-T42 @ui-feedback @negative @validation
   Scenario: Verify validation error feedback is shown when required fields are empty
     When I log in as HR Admin
     And I navigate to the Add Employee form
