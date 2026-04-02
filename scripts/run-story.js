@@ -127,9 +127,11 @@ function info(label, value) {
           JSON.stringify({ issueKey, keys: existingKeys }, null, 2)
         );
         info("Handoff written", `.story-testcases.json (${existingKeys.length} keys)`);
-        const result = await searchTestCases(50);
-        const total = result.total ?? (result.values || []).length;
-        info("Total test cases in project", total);
+        try {
+          const result = await searchTestCases(50);
+          const total = result.total ?? (result.values || []).length;
+          info("Total test cases in project", total);
+        } catch (_) { /* informational only — ignore */ }
         console.log(`\n${BOLD}${"═".repeat(54)}${RESET}\n`);
         process.exit(0);
       }
