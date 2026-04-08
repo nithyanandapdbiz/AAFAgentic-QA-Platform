@@ -1,14 +1,14 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T82
-// Title            : Verify User Login to OrangeHRM Application with the maximum number of records
+// Zephyr Test Case : SCRUM-T99
+// Title            : Verify Employee Creation in OrangeHRM with the maximum number of records
 // Priority         : Normal
-// Labels           : boundary, edge-case, performance, bva-volume, scrum-6
+// Labels           : boundary, edge-case, performance, bva-volume, scrum-5
 // Steps from Zephyr:
-//   1. [Given] [Pre-condition] Identify the system's maximum record limit for User Login to OrangeHRM Application (from documentation or config).
+//   1. [Given] [Pre-condition] Identify the system's maximum record limit for Employee Creation in OrangeHRM (from documentation or config).
 //   2. [When] Create records up to near-maximum capacity (or use existing data if already near limit).
-//   3. [Then] Attempt to perform User Login to OrangeHRM Application at the near-maximum threshold and verify normal behaviour.
-//   4. [When] Attempt to perform User Login to OrangeHRM Application at the exact maximum limit. Observe and document the response.
-//   5. [When] Attempt to perform User Login to OrangeHRM Application one record beyond the maximum limit.
+//   3. [Then] Attempt to perform Employee Creation in OrangeHRM at the near-maximum threshold and verify normal behaviour.
+//   4. [When] Attempt to perform Employee Creation in OrangeHRM at the exact maximum limit. Observe and document the response.
+//   5. [When] Attempt to perform Employee Creation in OrangeHRM one record beyond the maximum limit.
 //   6. [Then] Verify the system displays a meaningful limit-exceeded error message (not a crash or 500 error).
 //   7. [Then] Verify system performance: page load, search, and save operations remain within acceptable time (&lt; 5 seconds).
 //   8. [Then] Verify the system does not create partial records or corrupt existing data at capacity boundary.
@@ -23,9 +23,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T82 | Verify User Login to OrangeHRM Application with the maximum number of records', () => {
+test.describe('SCRUM-T99 | Verify Employee Creation in OrangeHRM with the maximum number of records', () => {
 
-  test('Verify User Login to OrangeHRM Application with the maximum number of records', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify Employee Creation in OrangeHRM with the maximum number of records', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);

@@ -1,13 +1,13 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T70
-// Title            : Verify duplicate User Login to OrangeHRM Application is prevented
+// Zephyr Test Case : SCRUM-T87
+// Title            : Verify duplicate Employee Creation in OrangeHRM is prevented
 // Priority         : Normal
-// Labels           : validation, negative, duplicate, error-guessing, scrum-6
+// Labels           : validation, negative, duplicate, error-guessing, scrum-5
 // Steps from Zephyr:
 //   1. [Given] [Pre-condition] User is logged in as Admin.
-//   2. [When] Perform a successful User Login to OrangeHRM Application: Enter First Name &quot;DupeTest&quot;, Last Name &quot;DupeUser&quot;, save the record.
+//   2. [When] Perform a successful Employee Creation in OrangeHRM: Enter First Name &quot;DupeTest&quot;, Last Name &quot;DupeUser&quot;, save the record.
 //   3. [And] Note the generated employee ID or unique identifier: &quot;DUP001&quot;.
-//   4. [Given] Navigate back to the User Login to OrangeHRM Application form.
+//   4. [And] Navigate back to the Employee Creation in OrangeHRM form.
 //   5. [When] Attempt to create a second record with the exact same unique identifier &quot;DUP001&quot;.
 //   6. [When] Click Save / Submit.
 //   7. [When] Observe the system response for the duplicate attempt.
@@ -25,9 +25,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T70 | Verify duplicate User Login to OrangeHRM Application is prevented', () => {
+test.describe('SCRUM-T87 | Verify duplicate Employee Creation in OrangeHRM is prevented', () => {
 
-  test('Verify duplicate User Login to OrangeHRM Application is prevented', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify duplicate Employee Creation in OrangeHRM is prevented', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);

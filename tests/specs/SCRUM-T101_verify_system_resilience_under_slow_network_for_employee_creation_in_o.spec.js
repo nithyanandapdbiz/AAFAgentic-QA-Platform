@@ -1,10 +1,10 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T84
-// Title            : Verify system resilience under slow network for User Login to OrangeHRM Application
+// Zephyr Test Case : SCRUM-T101
+// Title            : Verify system resilience under slow network for Employee Creation in OrangeHRM
 // Priority         : Normal
-// Labels           : performance, error-guessing, scrum-6, dynamic-generated, network-resilience
+// Labels           : performance, error-guessing, dynamic-generated, network-resilience, scrum-5
 // Steps from Zephyr:
-//   1. [Given] [Pre-condition] User is logged in. Navigate to User Login to OrangeHRM Application form. Open browser DevTools and throttle network to Slow 3G.
+//   1. [Given] [Pre-condition] User is logged in. Navigate to Employee Creation in OrangeHRM form. Open browser DevTools and throttle network to Slow 3G.
 //   2. [When] Fill in all required fields and click Submit.
 //   3. [Then] Verify a loading indicator (spinner, disabled button) appears during the request.
 //   4. [Then] Verify the submit button is disabled to prevent double-click submission.
@@ -22,9 +22,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T84 | Verify system resilience under slow network for User Login to OrangeHRM Application', () => {
+test.describe('SCRUM-T101 | Verify system resilience under slow network for Employee Creation in OrangeHRM', () => {
 
-  test('Verify system resilience under slow network for User Login to OrangeHRM Application', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify system resilience under slow network for Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
@@ -34,7 +34,7 @@ test.describe('SCRUM-T84 | Verify system resilience under slow network for User 
       await addEmployeePage.navigate();
     });
 
-    await sh.step("1. [Given] [Pre-condition] User is logged in. Navigate to User Login to OrangeHRM Application form. Open browser DevTools and throttle network to Slow 3G.", async () => {
+    await sh.step("1. [Given] [Pre-condition] User is logged in. Navigate to Employee Creation in OrangeHRM form. Open browser DevTools and throttle network to Slow 3G.", async () => {
       await page.waitForLoadState('networkidle');
     });
 

@@ -1,10 +1,10 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T79
-// Title            : Verify User Login to OrangeHRM Application handles special characters and unicode
+// Zephyr Test Case : SCRUM-T96
+// Title            : Verify Employee Creation in OrangeHRM handles special characters and unicode
 // Priority         : Normal
-// Labels           : edge-case, special-characters, unicode, error-guessing, scrum-6
+// Labels           : edge-case, special-characters, unicode, error-guessing, scrum-5
 // Steps from Zephyr:
-//   1. [Given] [Pre-condition] User is logged in as Admin. Navigate to User Login to OrangeHRM Application form.
+//   1. [Given] [Pre-condition] User is logged in as Admin. Navigate to Employee Creation in OrangeHRM form.
 //   2. [Then] Enter First Name: &quot;Jos&eacute;&quot; (unicode accented character). Submit and verify acceptance and correct storage/display.
 //   3. [Then] Navigate back. Enter First Name: &quot;O'Brien&quot; (apostrophe). Submit and verify no SQL error occurs and data is stored correctly.
 //   4. [Then] Navigate back. Enter Last Name: &quot;M&uuml;ller&quot; (umlaut). Submit and verify the umlaut is preserved in the saved record.
@@ -22,9 +22,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T79 | Verify User Login to OrangeHRM Application handles special characters and unicode', () => {
+test.describe('SCRUM-T96 | Verify Employee Creation in OrangeHRM handles special characters and unicode', () => {
 
-  test('Verify User Login to OrangeHRM Application handles special characters and unicode', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify Employee Creation in OrangeHRM handles special characters and unicode', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);

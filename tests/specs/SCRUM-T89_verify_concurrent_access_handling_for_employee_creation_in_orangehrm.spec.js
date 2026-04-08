@@ -1,12 +1,12 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T72
-// Title            : Verify concurrent access handling for User Login to OrangeHRM Application
+// Zephyr Test Case : SCRUM-T89
+// Title            : Verify concurrent access handling for Employee Creation in OrangeHRM
 // Priority         : Normal
-// Labels           : edge-case, error-guessing, scrum-6, dynamic-generated, concurrency
+// Labels           : edge-case, error-guessing, dynamic-generated, concurrency, scrum-5
 // Steps from Zephyr:
 //   1. [Given] [Pre-condition] Open two separate browser sessions, both logged in as different users.
-//   2. [Given] In browser 1: navigate to the User Login to OrangeHRM Application form and fill in all required fields.
-//   3. [Given] In browser 2: navigate to the same User Login to OrangeHRM Application form and fill in all required fields with different data.
+//   2. [When] In browser 1: navigate to the Employee Creation in OrangeHRM form and fill in all required fields.
+//   3. [When] In browser 2: navigate to the same Employee Creation in OrangeHRM form and fill in all required fields with different data.
 //   4. [When] Submit both forms as close to simultaneously as possible.
 //   5. [Then] Verify no server errors (500), crashes, or data corruption occur.
 //   6. [Then] Verify both records are created correctly with their respective data, or one receives a meaningful conflict error.
@@ -22,9 +22,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T72 | Verify concurrent access handling for User Login to OrangeHRM Application', () => {
+test.describe('SCRUM-T89 | Verify concurrent access handling for Employee Creation in OrangeHRM', () => {
 
-  test('Verify concurrent access handling for User Login to OrangeHRM Application', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify concurrent access handling for Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
@@ -38,11 +38,11 @@ test.describe('SCRUM-T72 | Verify concurrent access handling for User Login to O
       await page.waitForLoadState('networkidle');
     });
 
-    await sh.step("2. [Given] In browser 1: navigate to the User Login to OrangeHRM Application form and fill in all required fields.", async () => {
+    await sh.step("2. [When] In browser 1: navigate to the Employee Creation in OrangeHRM form and fill in all required fields.", async () => {
       await page.waitForLoadState('networkidle');
     });
 
-    await sh.step("3. [Given] In browser 2: navigate to the same User Login to OrangeHRM Application form and fill in all required fields with different data.", async () => {
+    await sh.step("3. [When] In browser 2: navigate to the same Employee Creation in OrangeHRM form and fill in all required fields with different data.", async () => {
       await page.waitForLoadState('networkidle');
     });
 

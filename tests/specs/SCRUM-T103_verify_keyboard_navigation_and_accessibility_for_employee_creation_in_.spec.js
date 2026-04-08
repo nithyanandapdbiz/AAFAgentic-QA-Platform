@@ -1,10 +1,10 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T86
-// Title            : Verify keyboard navigation and accessibility for User Login to OrangeHRM Application
+// Zephyr Test Case : SCRUM-T103
+// Title            : Verify keyboard navigation and accessibility for Employee Creation in OrangeHRM
 // Priority         : Normal
-// Labels           : usability, use-case, scrum-6, dynamic-generated, accessibility
+// Labels           : usability, use-case, dynamic-generated, accessibility, scrum-5
 // Steps from Zephyr:
-//   1. [Given] [Pre-condition] User is logged in. Navigate to the User Login to OrangeHRM Application page.
+//   1. [Given] [Pre-condition] User is logged in. Navigate to the Employee Creation in OrangeHRM page.
 //   2. [When] Without using the mouse, press Tab repeatedly to navigate through all form fields.
 //   3. [Then] Verify the tab order follows a logical top-to-bottom, left-to-right sequence.
 //   4. [Then] Verify each focused element has a visible focus indicator (outline or highlight).
@@ -22,9 +22,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T86 | Verify keyboard navigation and accessibility for User Login to OrangeHRM Application', () => {
+test.describe('SCRUM-T103 | Verify keyboard navigation and accessibility for Employee Creation in OrangeHRM', () => {
 
-  test('Verify keyboard navigation and accessibility for User Login to OrangeHRM Application', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify keyboard navigation and accessibility for Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
@@ -34,7 +34,7 @@ test.describe('SCRUM-T86 | Verify keyboard navigation and accessibility for User
       await addEmployeePage.navigate();
     });
 
-    await sh.step("1. [Given] [Pre-condition] User is logged in. Navigate to the User Login to OrangeHRM Application page.", async () => {
+    await sh.step("1. [Given] [Pre-condition] User is logged in. Navigate to the Employee Creation in OrangeHRM page.", async () => {
       await page.waitForLoadState('networkidle');
     });
 

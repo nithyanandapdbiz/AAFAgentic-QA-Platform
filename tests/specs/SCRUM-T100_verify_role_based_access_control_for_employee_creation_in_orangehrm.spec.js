@@ -1,12 +1,12 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T83
-// Title            : Verify role-based access control for User Login to OrangeHRM Application
+// Zephyr Test Case : SCRUM-T100
+// Title            : Verify role-based access control for Employee Creation in OrangeHRM
 // Priority         : Normal
-// Labels           : security, authorization, rbac, decision-table, scrum-6
+// Labels           : security, authorization, rbac, decision-table, scrum-5
 // Steps from Zephyr:
-//   1. [Given] [Pre-condition] Identify all roles relevant to User Login to OrangeHRM Application (Admin, ESS User, Supervisor).
-//   2. [Then] Log in as a user with the Admin role. Attempt to perform User Login to OrangeHRM Application. Verify the action succeeds.
-//   3. [Given] Log out. Log in as an ESS User (no admin rights). Navigate to User Login to OrangeHRM Application page.
+//   1. [Given] [Pre-condition] Identify all roles relevant to Employee Creation in OrangeHRM (Admin, ESS User, Supervisor).
+//   2. [Then] Log in as a user with the Admin role. Attempt to perform Employee Creation in OrangeHRM. Verify the action succeeds.
+//   3. [When] Log out. Log in as an ESS User (no admin rights). Navigate to Employee Creation in OrangeHRM page.
 //   4. [Then] Verify the action is blocked &mdash; either the URL redirects, the button is disabled, or an &quot;Access Denied&quot; message shows.
 //   5. [Then] Log out. Log in as a Supervisor role. Attempt the same action. Verify blocked as per role matrix.
 //   6. [Then] Access the URL directly without being logged in &mdash; verify redirect to login page.
@@ -22,9 +22,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T83 | Verify role-based access control for User Login to OrangeHRM Application', () => {
+test.describe('SCRUM-T100 | Verify role-based access control for Employee Creation in OrangeHRM', () => {
 
-  test('Verify role-based access control for User Login to OrangeHRM Application', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify role-based access control for Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in as Admin and access Employee List', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);

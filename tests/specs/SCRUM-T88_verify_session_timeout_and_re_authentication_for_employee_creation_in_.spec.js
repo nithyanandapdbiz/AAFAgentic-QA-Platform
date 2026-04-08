@@ -1,8 +1,8 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T71
-// Title            : Verify session timeout and re-authentication for User Login to OrangeHRM Application
+// Zephyr Test Case : SCRUM-T88
+// Title            : Verify session timeout and re-authentication for Employee Creation in OrangeHRM
 // Priority         : Normal
-// Labels           : security, state-transition, scrum-6, session, dynamic-generated
+// Labels           : security, state-transition, session, dynamic-generated, scrum-5
 // Steps from Zephyr:
 //   1. [Given] [Pre-condition] User is logged in as Admin. Note the current time.
 //   2. [When] Leave the application idle without any interaction for the configured session timeout period.
@@ -21,9 +21,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T71 | Verify session timeout and re-authentication for User Login to OrangeHRM Application', () => {
+test.describe('SCRUM-T88 | Verify session timeout and re-authentication for Employee Creation in OrangeHRM', () => {
 
-  test('Verify session timeout and re-authentication for User Login to OrangeHRM Application', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify session timeout and re-authentication for Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);

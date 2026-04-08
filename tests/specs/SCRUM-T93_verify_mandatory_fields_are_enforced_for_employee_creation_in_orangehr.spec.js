@@ -1,11 +1,11 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T76
-// Title            : Verify mandatory fields are enforced for User Login to OrangeHRM Application
+// Zephyr Test Case : SCRUM-T93
+// Title            : Verify mandatory fields are enforced for Employee Creation in OrangeHRM
 // Priority         : Normal
-// Labels           : validation, negative, required-fields, ep-empty, scrum-6
+// Labels           : validation, negative, required-fields, ep-empty, scrum-5
 // Steps from Zephyr:
 //   1. [Given] [Pre-condition] User is logged in as Admin.
-//   2. [Given] Navigate to the User Login to OrangeHRM Application page or form.
+//   2. [When] Navigate to the Employee Creation in OrangeHRM page or form.
 //   3. [When] Leave the First Name field completely empty (do not enter any value).
 //   4. [When] Leave the Last Name field completely empty (do not enter any value).
 //   5. [And] Leave any other mandatory fields empty.
@@ -25,9 +25,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T76 | Verify mandatory fields are enforced for User Login to OrangeHRM Application', () => {
+test.describe('SCRUM-T93 | Verify mandatory fields are enforced for Employee Creation in OrangeHRM', () => {
 
-  test('Verify mandatory fields are enforced for User Login to OrangeHRM Application', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify mandatory fields are enforced for Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);

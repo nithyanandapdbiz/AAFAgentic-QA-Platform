@@ -1,12 +1,12 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T75
-// Title            : Verify successful User Login to OrangeHRM Application with valid inputs
+// Zephyr Test Case : SCRUM-T92
+// Title            : Verify successful Employee Creation in OrangeHRM with valid inputs
 // Priority         : Normal
-// Labels           : happy-path, smoke, ep-valid, scrum-6
+// Labels           : happy-path, smoke, ep-valid, scrum-5
 // Steps from Zephyr:
 //   1. [Given] [Pre-condition] User is logged out. Browser is open at the application URL.
 //   2. [Given] Navigate to the application login page and log in with valid admin credentials (Username: Admin, Password: admin123).
-//   3. [Given] Navigate to the User Login to OrangeHRM Application page or form via the main navigation menu.
+//   3. [When] Navigate to the Employee Creation in OrangeHRM page or form via the main navigation menu.
 //   4. [Then] Verify the form/page loads completely with all fields visible.
 //   5. [When] Fill in First Name field with valid test data: &quot;AutoTest&quot; (alphabetic, within 1&ndash;50 char limit).
 //   6. [When] Fill in Last Name field with valid test data: &quot;Employee&quot; (alphabetic, within 1&ndash;50 char limit).
@@ -25,9 +25,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T75 | Verify successful User Login to OrangeHRM Application with valid inputs', () => {
+test.describe('SCRUM-T92 | Verify successful Employee Creation in OrangeHRM with valid inputs', () => {
 
-  test('Verify successful User Login to OrangeHRM Application with valid inputs', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify successful Employee Creation in OrangeHRM with valid inputs', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Open Login Page', async () => {
       await loginPage.goto();

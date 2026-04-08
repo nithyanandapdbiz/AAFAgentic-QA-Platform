@@ -1,11 +1,11 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T81
-// Title            : Verify data is persisted correctly after User Login to OrangeHRM Application
+// Zephyr Test Case : SCRUM-T98
+// Title            : Verify data is persisted correctly after Employee Creation in OrangeHRM
 // Priority         : Normal
-// Labels           : data-integrity, persistence, regression, state-transition, scrum-6
+// Labels           : data-integrity, persistence, regression, state-transition, scrum-5
 // Steps from Zephyr:
 //   1. [Given] [State: Pre-action] Count existing records before test (note the total).
-//   2. [Given] Navigate to User Login to OrangeHRM Application form. Enter First Name: &quot;PersistTest&quot;, Middle Name: &quot;Verify&quot;, Last Name: &quot;DataCheck&quot;.
+//   2. [Then] Navigate to Employee Creation in OrangeHRM form. Enter First Name: &quot;PersistTest&quot;, Middle Name: &quot;Verify&quot;, Last Name: &quot;DataCheck&quot;.
 //   3. [Then] Click Save. Verify success message appears.
 //   4. [And] [State: Record Created] Note the assigned employee ID or unique identifier.
 //   5. [And] Navigate away from the page to the employee list/dashboard.
@@ -25,9 +25,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T81 | Verify data is persisted correctly after User Login to OrangeHRM Application', () => {
+test.describe('SCRUM-T98 | Verify data is persisted correctly after Employee Creation in OrangeHRM', () => {
 
-  test('Verify data is persisted correctly after User Login to OrangeHRM Application', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify data is persisted correctly after Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);

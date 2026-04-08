@@ -1,10 +1,10 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T73
-// Title            : Verify browser back/forward navigation during User Login to OrangeHRM Application
+// Zephyr Test Case : SCRUM-T90
+// Title            : Verify browser back/forward navigation during Employee Creation in OrangeHRM
 // Priority         : Normal
-// Labels           : edge-case, state-transition, scrum-6, dynamic-generated, browser-navigation
+// Labels           : edge-case, state-transition, dynamic-generated, browser-navigation, scrum-5
 // Steps from Zephyr:
-//   1. [Given] [Pre-condition] User is logged in as Admin. Navigate to User Login to OrangeHRM Application form.
+//   1. [Given] [Pre-condition] User is logged in as Admin. Navigate to Employee Creation in OrangeHRM form.
 //   2. [When] Fill in all required fields with valid data but do NOT submit.
 //   3. [When] Click the browser Back button. Then click browser Forward button.
 //   4. [Then] Verify the form reloads without errors (data may or may not be preserved).
@@ -23,9 +23,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T73 | Verify browser back/forward navigation during User Login to OrangeHRM Application', () => {
+test.describe('SCRUM-T90 | Verify browser back/forward navigation during Employee Creation in OrangeHRM', () => {
 
-  test('Verify browser back/forward navigation during User Login to OrangeHRM Application', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify browser back/forward navigation during Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
@@ -35,7 +35,7 @@ test.describe('SCRUM-T73 | Verify browser back/forward navigation during User Lo
       await addEmployeePage.navigate();
     });
 
-    await sh.step("1. [Given] [Pre-condition] User is logged in as Admin. Navigate to User Login to OrangeHRM Application form.", async () => {
+    await sh.step("1. [Given] [Pre-condition] User is logged in as Admin. Navigate to Employee Creation in OrangeHRM form.", async () => {
       await page.waitForLoadState('networkidle');
     });
 

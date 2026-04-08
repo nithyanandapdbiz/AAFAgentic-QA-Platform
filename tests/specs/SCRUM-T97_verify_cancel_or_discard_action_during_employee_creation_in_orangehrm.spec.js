@@ -1,10 +1,10 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T80
-// Title            : Verify cancel or discard action during User Login to OrangeHRM Application
+// Zephyr Test Case : SCRUM-T97
+// Title            : Verify cancel or discard action during Employee Creation in OrangeHRM
 // Priority         : Normal
-// Labels           : negative, cancel, data-integrity, state-transition, scrum-6
+// Labels           : negative, cancel, data-integrity, state-transition, scrum-5
 // Steps from Zephyr:
-//   1. [Given] [Pre-condition] User is logged in as Admin. Navigate to User Login to OrangeHRM Application form.
+//   1. [Given] [Pre-condition] User is logged in as Admin. Navigate to Employee Creation in OrangeHRM form.
 //   2. [Then] [State: Form Empty] Verify the form starts in an empty state.
 //   3. [When] [State: Partially Filled] Enter First Name: &quot;CancelTest&quot; and Last Name: &quot;Partial&quot; without submitting.
 //   4. [When] Without clicking Save, click the Cancel button (or navigate away using the browser Back button).
@@ -24,9 +24,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T80 | Verify cancel or discard action during User Login to OrangeHRM Application', () => {
+test.describe('SCRUM-T97 | Verify cancel or discard action during Employee Creation in OrangeHRM', () => {
 
-  test('Verify cancel or discard action during User Login to OrangeHRM Application', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify cancel or discard action during Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);

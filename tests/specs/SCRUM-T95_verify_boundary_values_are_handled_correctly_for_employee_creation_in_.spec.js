@@ -1,10 +1,10 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T78
-// Title            : Verify boundary values are handled correctly for User Login to OrangeHRM Application
+// Zephyr Test Case : SCRUM-T95
+// Title            : Verify boundary values are handled correctly for Employee Creation in OrangeHRM
 // Priority         : Normal
-// Labels           : boundary, edge-case, bva, scrum-6
+// Labels           : boundary, edge-case, bva, scrum-5
 // Steps from Zephyr:
-//   1. [Given] [Pre-condition] User is logged in as Admin. Navigate to User Login to OrangeHRM Application form.
+//   1. [Given] [Pre-condition] User is logged in as Admin. Navigate to Employee Creation in OrangeHRM form.
 //   2. [Then] [BVA-1] Enter minimum boundary value: single character &quot;A&quot; in First Name and &quot;B&quot; in Last Name. Submit and verify the form accepts it.
 //   3. [Then] [BVA-2] Enter Min+1 boundary value: two characters &quot;AB&quot; in First Name. Submit and verify acceptance.
 //   4. [Then] [BVA-3] Navigate back and enter Max-1 boundary value: 49-character string in First Name. Submit and verify acceptance.
@@ -23,9 +23,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T78 | Verify boundary values are handled correctly for User Login to OrangeHRM Application', () => {
+test.describe('SCRUM-T95 | Verify boundary values are handled correctly for Employee Creation in OrangeHRM', () => {
 
-  test('Verify boundary values are handled correctly for User Login to OrangeHRM Application', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify boundary values are handled correctly for Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);

@@ -1,11 +1,11 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T85
-// Title            : Verify UI feedback messages are correct for User Login to OrangeHRM Application
+// Zephyr Test Case : SCRUM-T102
+// Title            : Verify UI feedback messages are correct for Employee Creation in OrangeHRM
 // Priority         : Normal
-// Labels           : ui, usability, feedback, use-case, scrum-6
+// Labels           : ui, usability, feedback, use-case, scrum-5
 // Steps from Zephyr:
-//   1. [Given] [Pre-condition] User is logged in as Admin. Navigate to User Login to OrangeHRM Application form.
-//   2. [When] [Positive] Complete a successful User Login to OrangeHRM Application with valid data (First Name: &quot;UITest&quot;, Last Name: &quot;User&quot;).
+//   1. [Given] [Pre-condition] User is logged in as Admin. Navigate to Employee Creation in OrangeHRM form.
+//   2. [When] [Positive] Complete a successful Employee Creation in OrangeHRM with valid data (First Name: &quot;UITest&quot;, Last Name: &quot;User&quot;).
 //   3. [Then] Verify the success toast / notification appears and reads &quot;Successfully Saved&quot; (or equivalent).
 //   4. [Then] Verify the success message is visible for the expected duration, then disappears or has a dismiss option.
 //   5. [Then] Verify the success message is free from spelling mistakes and grammatical errors.
@@ -25,9 +25,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T85 | Verify UI feedback messages are correct for User Login to OrangeHRM Application', () => {
+test.describe('SCRUM-T102 | Verify UI feedback messages are correct for Employee Creation in OrangeHRM', () => {
 
-  test('Verify UI feedback messages are correct for User Login to OrangeHRM Application', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify UI feedback messages are correct for Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);

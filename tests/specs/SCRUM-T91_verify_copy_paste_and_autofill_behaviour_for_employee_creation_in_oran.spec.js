@@ -1,10 +1,10 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T74
-// Title            : Verify copy-paste and autofill behaviour for User Login to OrangeHRM Application
+// Zephyr Test Case : SCRUM-T91
+// Title            : Verify copy-paste and autofill behaviour for Employee Creation in OrangeHRM
 // Priority         : Normal
-// Labels           : edge-case, error-guessing, scrum-6, dynamic-generated, clipboard-paste
+// Labels           : edge-case, error-guessing, dynamic-generated, clipboard-paste, scrum-5
 // Steps from Zephyr:
-//   1. [Given] [Pre-condition] User is logged in. Navigate to User Login to OrangeHRM Application form.
+//   1. [Given] [Pre-condition] User is logged in. Navigate to Employee Creation in OrangeHRM form.
 //   2. [When] Copy text with leading/trailing spaces from an external source and paste into the First Name field.
 //   3. [Then] Verify the system either trims the whitespace or accepts it without breaking validation.
 //   4. [And] Copy multi-line text and paste into a single-line field (e.g. Last Name).
@@ -22,9 +22,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T74 | Verify copy-paste and autofill behaviour for User Login to OrangeHRM Application', () => {
+test.describe('SCRUM-T91 | Verify copy-paste and autofill behaviour for Employee Creation in OrangeHRM', () => {
 
-  test('Verify copy-paste and autofill behaviour for User Login to OrangeHRM Application', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify copy-paste and autofill behaviour for Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
@@ -34,7 +34,7 @@ test.describe('SCRUM-T74 | Verify copy-paste and autofill behaviour for User Log
       await addEmployeePage.navigate();
     });
 
-    await sh.step("1. [Given] [Pre-condition] User is logged in. Navigate to User Login to OrangeHRM Application form.", async () => {
+    await sh.step("1. [Given] [Pre-condition] User is logged in. Navigate to Employee Creation in OrangeHRM form.", async () => {
       await page.waitForLoadState('networkidle');
     });
 

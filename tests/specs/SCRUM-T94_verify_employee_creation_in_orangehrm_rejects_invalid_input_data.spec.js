@@ -1,10 +1,10 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T77
-// Title            : Verify User Login to OrangeHRM Application rejects invalid input data
+// Zephyr Test Case : SCRUM-T94
+// Title            : Verify Employee Creation in OrangeHRM rejects invalid input data
 // Priority         : Normal
-// Labels           : validation, negative, invalid-data, ep-invalid, security-eg, scrum-6
+// Labels           : validation, negative, invalid-data, ep-invalid, security-eg, scrum-5
 // Steps from Zephyr:
-//   1. [Given] [Pre-condition] User is logged in as Admin. Navigate to User Login to OrangeHRM Application form.
+//   1. [Given] [Pre-condition] User is logged in as Admin. Navigate to Employee Creation in OrangeHRM form.
 //   2. [When] Enter numeric-only value &quot;12345&quot; in the First Name field.
 //   3. [When] Enter special characters &quot;!@#$%^&amp;*&quot; in the Last Name field.
 //   4. [When] Click Save / Submit and observe any validation errors shown.
@@ -25,9 +25,9 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T77 | Verify User Login to OrangeHRM Application rejects invalid input data', () => {
+test.describe('SCRUM-T94 | Verify Employee Creation in OrangeHRM rejects invalid input data', () => {
 
-  test('Verify User Login to OrangeHRM Application rejects invalid input data', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify Employee Creation in OrangeHRM rejects invalid input data', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in and open Add Employee form', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);

@@ -48,12 +48,13 @@ try {
   if (process.platform === 'win32') {
     // .cmd files require a shell on Windows. Build a single quoted string
     // (no separate args array) so DEP0190 is never triggered.
-    const shellCmd = `"${ALLURE_BIN}" generate "${RESULTS_DIR}" --output "${REPORT_DIR}" --clean`;
+    // --single-file embeds all data inside index.html so it opens without a web server
+    const shellCmd = `"${ALLURE_BIN}" generate "${RESULTS_DIR}" --output "${REPORT_DIR}" --clean --single-file`;
     const result = spawnSync(shellCmd, { stdio: 'inherit', shell: true });
     if (result.error) throw result.error;
     if (result.status !== 0) throw Object.assign(new Error(), { status: result.status });
   } else {
-    execFileSync(ALLURE_BIN, ['generate', RESULTS_DIR, '--output', REPORT_DIR, '--clean'],
+    execFileSync(ALLURE_BIN, ['generate', RESULTS_DIR, '--output', REPORT_DIR, '--clean', '--single-file'],
                  { stdio: 'inherit' });
   }
 } catch (err) {
@@ -62,4 +63,4 @@ try {
 }
 
 console.log('\n  ✓ Allure report generated: allure-report/index.html');
-console.log('  Open: allure-report/index.html\n');
+console.log('  Open: allure-report/index.html (self-contained single file)\n');
