@@ -49,6 +49,16 @@ module.exports = {
     { deviceName: 'Pixel_7',   screenOrientation: 'Portrait' },
   ],
 
+  // ── Baseline management ─────────────────────────────────────────────────
+  // Auto-save NEW tests (first-time checkpoints) as the accepted baseline.
+  // Without this, new tests always appear as "Unresolved" until human review.
+  saveNewTests: process.env.APPLITOOLS_SAVE_NEW_TESTS !== 'false',  // default: true
+
+  // Auto-accept visual diffs as the new baseline.
+  // Set APPLITOOLS_AUTO_ACCEPT=true during initial setup or when UI changes
+  // are intentional. Keep false in normal CI to catch regressions.
+  saveDiffs: process.env.APPLITOOLS_AUTO_ACCEPT === 'true',
+
   // ── Retry / resilience ──────────────────────────────────────────────────
   // Number of retry attempts for transient checkpoint failures
   checkpointRetries: 2,

@@ -29,6 +29,10 @@ module.exports = async function globalSetup(config) {
   // caches the directory handle during reporter init (before globalSetup runs).
   cleanDir('allure-results');
 
+  // Clean up step screenshots from the previous run so the custom report only
+  // embeds screenshots from this run (avoids stale screenshot bleeding).
+  cleanDir('test-results/screenshots');
+
   const startTime = Date.now();
   console.log('\n╔══════════════════════════════════════════════════╗');
   console.log('║            GLOBAL SETUP — Starting               ║');

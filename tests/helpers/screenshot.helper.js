@@ -69,10 +69,18 @@ class ScreenshotHelper {
     this._counter++;
     const num = String(this._counter).padStart(2, '0');
     return test.step(`${num}. ${label}`, async () => {
-      await fn();
+      let stepError = null;
+      try {
+        await fn();
+      } catch (err) {
+        stepError = err;
+      }
+      // Always capture — even when the step failed, so every step has a screenshot
       await this._capture(`step-${num}-${label}`, `${num}. ${label}`);
       // Visual AI checkpoint — no-op when eyes is null or API key is absent
       if (this._eyes) await this._eyes.check(`${num}. ${label}`);
+      // Re-throw after screenshot so Playwright still records the failure
+      if (stepError) throw stepError;
     });
   }
 
@@ -96,6 +104,9 @@ class ScreenshotHelper {
       .slice(0, 70);
     const filePath = path.join(this._dir, `${slug}.png`);
     try {
+      // Bail out early if the page is already closed / crashed
+      if (this.page.isClosed()) return;
+
       const buffer = await this.page.screenshot({ fullPage: true });
       fs.writeFileSync(filePath, buffer);
 
@@ -107,8 +118,9 @@ class ScreenshotHelper {
         body: buffer,
         contentType: 'image/png',
       });
-    } catch {
-      // Silently skip if the page is in a closed or crashed state
+    } catch (err) {
+      // Log the failure so it's visible in CI output — don't crash the test
+      console.warn(`  [ScreenshotHelper] ⚠ Failed to capture "${attachName || label}": ${err.message}`);
     }
   }
 }

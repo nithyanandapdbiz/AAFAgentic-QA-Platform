@@ -126,6 +126,12 @@ class EyesHelper {
     };
     config.setMatchLevel(levelMap[applitoolsConfig.matchLevel] ?? MatchLevel.Strict);
 
+    // Baseline management — auto-accept new tests and optionally auto-accept diffs
+    config.setSaveNewTests(applitoolsConfig.saveNewTests !== false);
+    if (applitoolsConfig.saveDiffs) {
+      config.setSaveDiffs(true);
+    }
+
     // ── Ultrafast Grid — cross-browser / device matrix ────────────────
     if (applitoolsConfig.useUltrafastGrid) {
       for (const b of (applitoolsConfig.browsersConfig || [])) {
