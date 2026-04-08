@@ -39,6 +39,7 @@
  *   node scripts/qa-run.js --force           ← force-recreate Zephyr test cases (stage 1)
  *   node scripts/qa-run.js --skip-heal       ← skip stage 4 (healer)
  *   node scripts/qa-run.js --skip-bugs       ← skip stage 5 (bug creation)
+ *   node scripts/qa-run.js --skip-git        ← skip stage 9 (git auto-commit + push)
  *   node scripts/qa-run.js --headless        ← run browser in headless CI mode
  *
  * Stage 1 dedup:  If test cases already exist in Zephyr for this story they are

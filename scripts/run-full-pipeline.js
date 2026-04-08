@@ -5,19 +5,21 @@
  * Executes the COMPLETE end-to-end QA journey for a Jira user story with zero
  * human input — from story analysis all the way to the HTML report.
  *
- *  Journey:
+ *  Journey (9 stages):
  *   ┌──────────────────────────────────────────────────────────────────────────┐
- *   │  Stage 1  Analyse Jira story → AI test plan (BVA, EP, DT, ST, EG, UC)  │
- *   │  Stage 2  Generate detailed Zephyr test cases with steps + test data     │
- *   │  Stage 3  Generate Playwright spec files from Zephyr                    │
- *   │  Stage 4  Execute all specs in headed browser (or headless)             │
- *   │           + Applitools Eyes visual checks on every test                    │
- *   │           → Sync Pass/Fail to Zephyr test cycle                         │
- *   │  Stage 5  Self-Healing Agent  →  repair failing specs + re-run         │
- *   │  Stage 6  Auto-create Jira bugs for remaining failures (linked to story)│
- *   │  Stage 7  Generate interactive HTML report                              │
- *   │  Stage 8  Generate Allure report (interactive drill-down)               │
- *   │  Stage 9  Generate Applitools visual test report                        │ *   │  Stage 10 Git Agent — auto-commit + push all changes                    │ *   └──────────────────────────────────────────────────────────────────────────┘
+ *   │  Stage 1  Analyse Jira story → AI test plan → create Zephyr test cases  │
+ *   │           (BVA, EP, DT, ST, EG, UC — with concrete test data)           │
+ *   │  Stage 2  Generate Playwright spec files from Zephyr                    │
+ *   │  Stage 3  Execute all specs in headed browser (or headless)             │
+ *   │           + Applitools Eyes visual checks on every test                 │
+ *   │           → Sync Pass/Fail to Zephyr test cycle                        │
+ *   │  Stage 4  Self-Healing Agent → repair failing specs + re-run            │
+ *   │  Stage 5  Auto-create Jira bugs for remaining failures (linked to story)│
+ *   │  Stage 6  Generate interactive HTML report                              │
+ *   │  Stage 7  Generate Allure report (interactive drill-down)               │
+ *   │  Stage 8  Generate Applitools visual test report                        │
+ *   │  Stage 9  Git Agent — auto-commit + push all changes                   │
+ *   └──────────────────────────────────────────────────────────────────────────┘
  *
  * ─── Usage ───────────────────────────────────────────────────────────────────
  *   node scripts/run-full-pipeline.js                    ← full journey
@@ -25,6 +27,7 @@
  *   node scripts/run-full-pipeline.js --force            ← recreate Zephyr TCs
  *   node scripts/run-full-pipeline.js --skip-heal        ← skip self-healer
  *   node scripts/run-full-pipeline.js --skip-bugs        ← skip Jira bug creation
+ *   node scripts/run-full-pipeline.js --skip-git         ← skip git auto-commit + push
  *   ISSUE_KEY=SCRUM-6 node scripts/run-full-pipeline.js  ← override story key
  *
  * All configuration is read from .env  (ISSUE_KEY, PROJECT_KEY, JIRA_*, ZEPHYR_*)

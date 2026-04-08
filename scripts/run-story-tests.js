@@ -7,18 +7,20 @@
  * the current story, runs them in a headed browser, heals failures, creates Jira
  * bugs, and generates the report.
  *
- *  What it does:
+ *  What it does (7 stages + resolve pre-step):
  *   ┌──────────────────────────────────────────────────────────────────────────┐
- *   │  Stage 1  Resolve story test cases  (Zephyr → spec file paths)          │
- *   │           Uses .story-testcases.json if present, otherwise fetches all  │
- *   │           TCs for ISSUE_KEY from Zephyr and finds matching spec files   │
- *   │  Stage 2  Execute story specs + Applitools Eyes visual checks            │
- *   │           →  Sync Pass/Fail to Zephyr                                    │
- *   │  Stage 3  Self-Healing Agent  →  repair + re-run failing specs          │
- *   │  Stage 4  Auto-create Jira bugs for remaining failures                  │
- *   │  Stage 5  Generate interactive HTML report                              │
- *   │  Stage 6  Generate Allure report (interactive drill-down)               │
- *   │  Stage 7  Generate Applitools visual test report                        │ *   │  Stage 8  Git Agent — auto-commit + push all changes                    │ *   └──────────────────────────────────────────────────────────────────────────┘
+ *   │  Pre     Resolve story test cases  (Zephyr → spec file paths)           │
+ *   │          Uses .story-testcases.json if present, otherwise fetches all   │
+ *   │          TCs for ISSUE_KEY from Zephyr and finds matching spec files    │
+ *   │  Stage 1  Execute story specs + Applitools Eyes visual checks           │
+ *   │            →  Sync Pass/Fail to Zephyr                                  │
+ *   │  Stage 2  Self-Healing Agent  →  repair + re-run failing specs          │
+ *   │  Stage 3  Auto-create Jira bugs for remaining failures                  │
+ *   │  Stage 4  Generate interactive HTML report                              │
+ *   │  Stage 5  Generate Allure report (interactive drill-down)               │
+ *   │  Stage 6  Generate Applitools visual test report                        │
+ *   │  Stage 7  Git Agent — auto-commit + push all changes                   │
+ *   └──────────────────────────────────────────────────────────────────────────┘
  *
  * ─── Usage ───────────────────────────────────────────────────────────────────
  *   node scripts/run-story-tests.js                 ← uses ISSUE_KEY from .env
@@ -26,6 +28,7 @@
  *   node scripts/run-story-tests.js --headless      ← CI / headless mode
  *   node scripts/run-story-tests.js --skip-heal     ← skip self-healer
  *   node scripts/run-story-tests.js --skip-bugs     ← skip Jira bug creation
+ *   node scripts/run-story-tests.js --skip-git      ← skip git auto-commit + push
  *   node scripts/run-story-tests.js --regen-specs   ← re-generate spec files first
  *
  * All configuration is read from .env  (ISSUE_KEY, PROJECT_KEY, JIRA_*, ZEPHYR_*)

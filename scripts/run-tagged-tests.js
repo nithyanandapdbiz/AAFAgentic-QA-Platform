@@ -47,6 +47,7 @@
  *   --tag <value>    Tag / annotation / regex to filter tests  (REQUIRED)
  *   --skip-heal      Skip the self-healing stage
  *   --skip-bugs      Skip Jira bug creation
+ *   --skip-git       Skip git auto-commit + push
  *   --list-only      Print matching spec files and test count, do not run
  *
  * All configuration is read from .env  (ISSUE_KEY, PROJECT_KEY, JIRA_*, ZEPHYR_*)
@@ -276,7 +277,7 @@ ${RESET}`);
     process.exit(0);
   }
 
-  const TOTAL   = 6;
+  const TOTAL   = 7;
   const summary = [];
   const t0      = Date.now();
 
@@ -301,40 +302,53 @@ ${RESET}`);
     summary.push({ num: 2, label: 'Self-Healing Agent', status: ok ? 'PASS' : 'WARN', ms: ms2 });
   }
 
-  // ── Stage 3: HTML report ───────────────────────────────────────────────────
-  stageHeader(3, TOTAL, 'Generate HTML report');
+  // ── Stage 3: Jira bug creation ─────────────────────────────────────────────────
+  stageHeader(3, TOTAL, 'Auto-create Jira bugs for remaining failures', flags.has('--skip-bugs'));
+  if (flags.has('--skip-bugs')) {
+    console.log(`  ${C.yellow}↷ Skipped  (--skip-bugs)${RESET}\n`);
+    summary.push({ num: 3, label: 'Jira bug creation', status: 'SKIPPED', ms: 0 });
+  } else {
+    const tsB = Date.now();
+    const { ok: okBugs } = runScript('scripts/create-jira-bugs.js');
+    const msB = Date.now() - tsB;
+    stageDone(3, 'Jira bug creation', okBugs || true, msB);
+    summary.push({ num: 3, label: 'Jira bug creation', status: okBugs ? 'PASS' : 'WARN', ms: msB });
+  }
+
+  // ── Stage 4: HTML report ──────────────────────────────────────────────────────
+  stageHeader(4, TOTAL, 'Generate HTML report');
   const ts3 = Date.now();
   const { ok: okReport } = runScript('scripts/generate-report.js');
   const ms3 = Date.now() - ts3;
-  stageDone(3, 'Generate HTML report', okReport, ms3);
-  summary.push({ num: 3, label: 'Generate HTML report', status: okReport ? 'PASS' : 'FAIL', ms: ms3 });
+  stageDone(4, 'Generate HTML report', okReport, ms3);
+  summary.push({ num: 4, label: 'Generate HTML report', status: okReport ? 'PASS' : 'FAIL', ms: ms3 });
 
-  // ── Stage 4: Allure report ─────────────────────────────────────────────────
-  stageHeader(4, TOTAL, 'Generate Allure report');
+  // ── Stage 5: Allure report ─────────────────────────────────────────────────
+  stageHeader(5, TOTAL, 'Generate Allure report');
   const ts4 = Date.now();
   const { ok: okAllure } = runScript('scripts/generate-allure-report.js');
   const ms4 = Date.now() - ts4;
-  stageDone(4, 'Generate Allure report', okAllure || true, ms4);
-  summary.push({ num: 4, label: 'Generate Allure report', status: okAllure ? 'PASS' : 'WARN', ms: ms4 });
+  stageDone(5, 'Generate Allure report', okAllure || true, ms4);
+  summary.push({ num: 5, label: 'Generate Allure report', status: okAllure ? 'PASS' : 'WARN', ms: ms4 });
 
-  // ── Stage 5: Applitools visual test report ─────────────────────────────────
-  stageHeader(5, TOTAL, 'Generate Applitools visual test report');
+  // ── Stage 6: Applitools visual test report ─────────────────────────────────
+  stageHeader(6, TOTAL, 'Generate Applitools visual test report');
   const ts5 = Date.now();
   const { ok: okEyes } = runScript('scripts/generate-applitools-report.js');
   const ms5 = Date.now() - ts5;
-  stageDone(5, 'Generate Applitools report', okEyes || true, ms5);
-  summary.push({ num: 5, label: 'Generate Applitools report', status: okEyes ? 'PASS' : 'WARN', ms: ms5 });
-  // ── Stage 6: Git Agent — auto-commit + push ──────────────────────────────
-  stageHeader(6, TOTAL, 'Git Agent — auto-commit + push', flags.has('--skip-git'));
+  stageDone(6, 'Generate Applitools report', okEyes || true, ms5);
+  summary.push({ num: 6, label: 'Generate Applitools report', status: okEyes ? 'PASS' : 'WARN', ms: ms5 });
+  // ── Stage 7: Git Agent — auto-commit + push ──────────────────────────────
+  stageHeader(7, TOTAL, 'Git Agent — auto-commit + push', flags.has('--skip-git'));
   if (flags.has('--skip-git')) {
     console.log(`  ${C.yellow}↷ Skipped  (--skip-git)${RESET}\n`);
-    summary.push({ num: 6, label: 'Git Agent', status: 'SKIPPED', ms: 0 });
+    summary.push({ num: 7, label: 'Git Agent', status: 'SKIPPED', ms: 0 });
   } else {
     const ts6 = Date.now();
     const { ok: okGit } = runScript('scripts/git-sync.js');
     const ms6 = Date.now() - ts6;
-    stageDone(6, 'Git Agent', okGit || true, ms6);
-    summary.push({ num: 6, label: 'Git Agent', status: okGit ? 'PASS' : 'WARN', ms: ms6 });
+    stageDone(7, 'Git Agent', okGit || true, ms6);
+    summary.push({ num: 7, label: 'Git Agent', status: okGit ? 'PASS' : 'WARN', ms: ms6 });
   }
   // ── Summary ────────────────────────────────────────────────────────────────
   const totalSec = ((Date.now() - t0) / 1000).toFixed(1);
