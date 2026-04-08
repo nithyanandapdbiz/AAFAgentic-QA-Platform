@@ -26,6 +26,6 @@
     "@applitools/eyes-playwright": "^1.46.3",
     "@playwright/test": "^1.40.0",
     "allure-commandline": "^2.38.1",
-    "allure-playwright": "^3.6.0"
+    "allure-playwright": "3.6.0"
   }
 }

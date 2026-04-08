@@ -1,5 +1,5 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T67
+// Zephyr Test Case : SCRUM-T74
 // Title            : Verify copy-paste and autofill behaviour for User Login to OrangeHRM Application
 // Priority         : Normal
 // Labels           : edge-case, error-guessing, scrum-6, dynamic-generated, clipboard-paste
@@ -22,7 +22,7 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T67 | Verify copy-paste and autofill behaviour for User Login to OrangeHRM Application', () => {
+test.describe('SCRUM-T74 | Verify copy-paste and autofill behaviour for User Login to OrangeHRM Application', () => {
 
   test('Verify copy-paste and autofill behaviour for User Login to OrangeHRM Application', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 

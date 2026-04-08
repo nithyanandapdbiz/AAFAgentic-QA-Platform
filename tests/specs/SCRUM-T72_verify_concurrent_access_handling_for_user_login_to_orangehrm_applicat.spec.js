@@ -1,5 +1,5 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T65
+// Zephyr Test Case : SCRUM-T72
 // Title            : Verify concurrent access handling for User Login to OrangeHRM Application
 // Priority         : Normal
 // Labels           : edge-case, error-guessing, scrum-6, dynamic-generated, concurrency
@@ -22,7 +22,7 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T65 | Verify concurrent access handling for User Login to OrangeHRM Application', () => {
+test.describe('SCRUM-T72 | Verify concurrent access handling for User Login to OrangeHRM Application', () => {
 
   test('Verify concurrent access handling for User Login to OrangeHRM Application', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 

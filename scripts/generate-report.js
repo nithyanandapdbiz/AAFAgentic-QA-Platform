@@ -21,6 +21,7 @@
 
 const fs   = require('fs');
 const path = require('path');
+require('./ensure-dirs');  // ensure output dirs exist before report generation
 
 const ROOT              = path.resolve(__dirname, '..');
 const RESULTS_FILE      = path.join(ROOT, 'test-results.json');

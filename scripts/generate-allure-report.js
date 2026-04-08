@@ -17,6 +17,7 @@
 const { spawnSync, execFileSync } = require('child_process');
 const path                        = require('path');
 const fs                          = require('fs');
+const { ensureDirs }              = require('./ensure-dirs');
 
 const ROOT         = path.resolve(__dirname, '..');
 const RESULTS_DIR  = path.join(ROOT, 'allure-results');
@@ -29,6 +30,9 @@ const ALLURE_BIN   = path.join(ROOT, 'node_modules', '.bin',
 console.log('\n╔══════════════════════════════════════════════════╗');
 console.log('║   Allure Report Generator                        ║');
 console.log('╚══════════════════════════════════════════════════╝\n');
+
+// Ensure output directories exist (allure-report/ in particular)
+ensureDirs();
 
 if (!fs.existsSync(RESULTS_DIR)) {
   console.warn(`  WARNING: allure-results/ not found at ${RESULTS_DIR}`);

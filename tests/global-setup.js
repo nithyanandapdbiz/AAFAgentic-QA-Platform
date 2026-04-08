@@ -11,21 +11,23 @@ const { chromium } = require('@playwright/test');
 const fs           = require('fs');
 const path         = require('path');
 const { CREDENTIALS } = require('./data/testData');
+const { ensureDirs, cleanDir } = require('../scripts/ensure-dirs');
 
 const BASE_URL = 'https://opensource-demo.orangehrmlive.com';
 const AUTH_FILE = '.auth/storage-state.json';
 const EYES_JSONL = path.resolve(__dirname, '..', '.applitools-results.jsonl');
-const ALLURE_DIR = path.resolve(__dirname, '..', 'allure-results');
 
 module.exports = async function globalSetup(config) {
+  // Ensure ALL output directories exist (allure-results, screenshots, reports, etc.)
+  ensureDirs();
+
   // Clean up stale Applitools per-test results from previous runs
   if (fs.existsSync(EYES_JSONL)) fs.unlinkSync(EYES_JSONL);
 
-  // Clean up stale Allure results so the report reflects only this run
-  if (fs.existsSync(ALLURE_DIR)) {
-    fs.rmSync(ALLURE_DIR, { recursive: true, force: true });
-  }
-  fs.mkdirSync(ALLURE_DIR, { recursive: true });
+  // Clean up stale Allure results so the report reflects only this run.
+  // cleanDir() wipes contents but keeps the directory — allure-playwright v3
+  // caches the directory handle during reporter init (before globalSetup runs).
+  cleanDir('allure-results');
 
   const startTime = Date.now();
   console.log('\n╔══════════════════════════════════════════════════╗');

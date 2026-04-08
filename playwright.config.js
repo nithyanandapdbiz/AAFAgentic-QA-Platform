@@ -20,7 +20,10 @@ module.exports = defineConfig({
     ['list'],
     ['json',  { outputFile: 'test-results.json' }],
     ['html',  { outputFolder: 'playwright-report', open: 'never' }],
-    ['allure-playwright', { outputFolder: 'allure-results', detail: true, suiteTitle: true }]
+    // IMPORTANT: allure-playwright v3 uses 'resultsDir' (not 'outputFolder' from v2).
+    // If you upgrade allure-playwright, verify the option name hasn't changed.
+    // Symptoms of a mismatch: allure-results/ stays empty after a test run.
+    ['allure-playwright', { resultsDir: 'allure-results', detail: true }]
   ],
   use: {
     baseURL:    'https://opensource-demo.orangehrmlive.com',

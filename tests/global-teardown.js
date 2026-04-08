@@ -12,6 +12,7 @@ const fs   = require('fs');
 const path = require('path');
 
 const RESULTS_FILE = path.resolve(__dirname, '..', 'test-results.json');
+const { validateAllureResults } = require('../scripts/ensure-dirs');
 
 module.exports = async function globalTeardown() {
   console.log('\n' + '─'.repeat(52));
@@ -119,6 +120,37 @@ module.exports = async function globalTeardown() {
   } catch (err) {
     console.warn(`  ⚠ Applitools results: ${err.message}`);
   }
+
+  // ── Post-Run Validation: Allure Results ─────────────────────────────
+  // Catch allure-playwright config mismatches (e.g. wrong option names)
+  // immediately instead of discovering them when running the Allure report.
+  const allure = validateAllureResults();
+  if (!allure.ok) {
+    console.log('\n  ⚠⚠⚠  ALLURE RESULTS EMPTY  ⚠⚠⚠');
+    console.log('  The allure-results/ directory has 0 result files.');
+    console.log('  This usually means the allure-playwright reporter config');
+    console.log('  is wrong — check playwright.config.js reporter options.');
+    console.log('  allure-playwright v3 uses "resultsDir" (not "outputFolder").');
+  } else {
+    console.log(`\n  ── Allure Results: ${allure.count} result file(s) collected`);
+  }
+
+  // ── Post-Run Validation: Step Screenshots ───────────────────────────
+  const screenshotsDir = path.resolve(__dirname, '..', 'test-results', 'screenshots');
+  let screenshotCount = 0;
+  try {
+    if (fs.existsSync(screenshotsDir)) {
+      const walkCount = (dir) => {
+        for (const entry of fs.readdirSync(dir)) {
+          const full = path.join(dir, entry);
+          if (fs.statSync(full).isDirectory()) walkCount(full);
+          else if (entry.endsWith('.png')) screenshotCount++;
+        }
+      };
+      walkCount(screenshotsDir);
+    }
+  } catch { /* ignore */ }
+  console.log(`  ── Step Screenshots: ${screenshotCount} PNG file(s) captured`);
 
   console.log('\n' + '─'.repeat(52) + '\n');
 };

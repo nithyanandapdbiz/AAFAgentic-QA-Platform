@@ -1,5 +1,5 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T68
+// Zephyr Test Case : SCRUM-T84
 // Title            : Verify system resilience under slow network for User Login to OrangeHRM Application
 // Priority         : Normal
 // Labels           : performance, error-guessing, scrum-6, dynamic-generated, network-resilience
@@ -22,7 +22,7 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T68 | Verify system resilience under slow network for User Login to OrangeHRM Application', () => {
+test.describe('SCRUM-T84 | Verify system resilience under slow network for User Login to OrangeHRM Application', () => {
 
   test('Verify system resilience under slow network for User Login to OrangeHRM Application', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
