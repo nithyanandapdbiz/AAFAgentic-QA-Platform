@@ -3,14 +3,18 @@ const { parseResults } = require("../utils/resultParser");
 const { createBugsForFailures } = require("../services/bug.service");
 const { detectFlaky } = require("../services/flaky.service");
 const { calculateCoverage } = require("../services/coverage.service");
-const { setupCycle } = require("../services/cycle.service");
+const { setupCycle, completeCycle } = require("../services/cycle.service");
 const { mapResults } = require("../services/executionMapping.service");
 const { runPlaywright } = require("../services/execution.service");
 const logger = require("../utils/logger");
 
 async function finalFlow(issueKey, testCases, testCaseKeys, story) {
+  let cycleKey;
   try {
-    const cycleKey = await setupCycle(issueKey);
+    // ── Create cycle with full Details + Traceability ───────────────────────
+    const cycle = await setupCycle(issueKey, story);
+    cycleKey = cycle.key;
+
     await runPlaywright();
     const results = parseResults();
 
@@ -25,9 +29,17 @@ async function finalFlow(issueKey, testCases, testCaseKeys, story) {
     const coverage = calculateCoverage(testCases, story || { fields: {} });
     logger.info(`Coverage: ${JSON.stringify(coverage)}`);
 
-    await mapResults(cycleKey, testCaseKeys, results);
+    // ── Map results with full Details, Traceability & execution History ─────
+    await mapResults(cycleKey, testCaseKeys, results, story);
+
+    // ── History — mark cycle as Done ────────────────────────────────────────
+    await completeCycle(cycleKey);
   } catch (err) {
     logger.error(`finalFlow failed for ${issueKey}: ${err.message}`);
+    // Still try to close cycle on failure
+    if (cycleKey) {
+      await completeCycle(cycleKey).catch(() => {});
+    }
     throw err;
   }
 }

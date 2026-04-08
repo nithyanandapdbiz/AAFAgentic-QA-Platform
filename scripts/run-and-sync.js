@@ -18,6 +18,12 @@ const fs                = require('fs');
 const path              = require('path');
 const axios             = require('axios');
 
+// ─── Jira config (for traceability) ───────────────────────────────────────────
+const JIRA_URL     = (process.env.JIRA_URL || '').replace(/\/$/, '');
+const JIRA_EMAIL   = process.env.JIRA_EMAIL;
+const JIRA_TOKEN   = process.env.JIRA_API_TOKEN;
+const ENV_NAME     = process.env.ZEPHYR_ENV_NAME || 'Chromium - Playwright (headless)';
+
 // ─── Paths ────────────────────────────────────────────────────────────────────
 const ROOT             = path.resolve(__dirname, '..');
 const RESULTS_FILE     = path.join(ROOT, 'test-results.json');
@@ -145,13 +151,98 @@ async function fetchTestCases() {
   return res.data.values || res.data || [];
 }
 
-async function createCycle(name) {
-  const res = await axios.post(`${ZEPHYR_BASE}/testcycles`, {
-    projectKey: PROJECT_KEY,
+/**
+ * Fetch the Jira story for traceability — returns { id, key, fields } or null.
+ */
+async function fetchJiraIssue(issueKey) {
+  if (!JIRA_URL || !JIRA_EMAIL || !JIRA_TOKEN) return null;
+  try {
+    const res = await axios.get(`${JIRA_URL}/rest/api/3/issue/${encodeURIComponent(issueKey)}`, {
+      auth: { username: JIRA_EMAIL, password: JIRA_TOKEN }
+    });
+    return res.data;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Creates a test cycle with full Details per Zephyr Scale standards.
+ */
+async function createCycle(name, story) {
+  const now = new Date();
+  const storyTitle = (story && story.fields && story.fields.summary) || ISSUE_KEY;
+
+  const descParts = [
+    `Automated regression cycle for ${ISSUE_KEY}: ${storyTitle}`,
+    `Triggered: ${now.toISOString()}`,
+    `Environment: ${ENV_NAME}`,
+    `Runner: run-and-sync.js (agentic-qa-platform)`
+  ];
+  if (story && story.fields && story.fields.priority) {
+    descParts.push(`Story priority: ${story.fields.priority.name || 'Normal'}`);
+  }
+  if (story && story.fields && story.fields.status) {
+    descParts.push(`Story status: ${story.fields.status.name || 'Unknown'}`);
+  }
+
+  const body = {
+    projectKey:       PROJECT_KEY,
     name,
-    description: `Automated run triggered by run-and-sync.js on ${new Date().toISOString()}`
-  }, { headers: zHeaders() });
+    description:      descParts.join('\n'),
+    plannedStartDate: now.toISOString(),
+    plannedEndDate:   new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+    statusName:       'In Progress'
+  };
+
+  // Link to Jira fixVersion if available
+  if (story && story.fields && Array.isArray(story.fields.fixVersions) && story.fields.fixVersions.length) {
+    body.jiraProjectVersion = Number(story.fields.fixVersions[0].id);
+  }
+  // Set owner from Jira assignee
+  if (story && story.fields && story.fields.assignee && story.fields.assignee.accountId) {
+    body.ownerId = story.fields.assignee.accountId;
+  }
+
+  const res = await axios.post(`${ZEPHYR_BASE}/testcycles`, body, { headers: zHeaders() });
   return { id: res.data.id, key: res.data.key };
+}
+
+/**
+ * Traceability — link a test cycle to its originating Jira issue.
+ */
+async function linkCycleToIssue(cycleKey, issueId) {
+  try {
+    await axios.post(`${ZEPHYR_BASE}/testcycles/${cycleKey}/links/issues`,
+      { issueId: Number(issueId) }, { headers: zHeaders() });
+    return true;
+  } catch { return false; }
+}
+
+/**
+ * Traceability — link a test execution to a Jira issue.
+ */
+async function linkExecutionToIssue(execId, issueId) {
+  try {
+    await axios.post(`${ZEPHYR_BASE}/testexecutions/${execId}/links/issues`,
+      { issueId: Number(issueId) }, { headers: zHeaders() });
+    return true;
+  } catch { return false; }
+}
+
+/**
+ * History — update cycle status ("In Progress" → "Done") with actual end date.
+ */
+async function updateCycleStatus(cycleKey, statusName) {
+  try {
+    const current = await axios.get(`${ZEPHYR_BASE}/testcycles/${cycleKey}`, { headers: zHeaders() });
+    await axios.put(`${ZEPHYR_BASE}/testcycles/${cycleKey}`, {
+      ...current.data,
+      statusName,
+      plannedEndDate: new Date().toISOString()
+    }, { headers: zHeaders() });
+    return true;
+  } catch { return false; }
 }
 
 async function createExecution(cycleKey, testCaseKey) {
@@ -271,9 +362,28 @@ async function main() {
   console.log('  Step 4 — Create Test Cycle in Zephyr');
   console.log('──────────────────────────────────────────────────────\n');
 
+  // ── Step 3b: Fetch Jira story for traceability ─────────────────────────
+  console.log('  Fetching Jira story for traceability...');
+  const story = await fetchJiraIssue(ISSUE_KEY);
+  if (story) {
+    console.log(`  ✓ Story: ${story.key} — ${(story.fields && story.fields.summary) || ''}`);
+  } else {
+    console.log('  ⚠ Could not fetch Jira story — cycle will have limited traceability');
+  }
+  console.log();
+
   const cycleName = `AutoRun-${ISSUE_KEY}-${new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-')}`;
-  const cycle     = await createCycle(cycleName);
-  console.log(`  ✓ Cycle created: ${cycle.key}  (${cycleName})\n`);
+  const cycle     = await createCycle(cycleName, story);
+  console.log(`  ✓ Cycle created: ${cycle.key}  (${cycleName})`);
+
+  // ── Traceability — link cycle to Jira issue ─────────────────────────────
+  if (story && story.id) {
+    const linked = await linkCycleToIssue(cycle.key, story.id);
+    console.log(linked
+      ? `  ✓ Cycle linked to ${ISSUE_KEY} (traceability)`
+      : `  ⚠ Failed to link cycle to ${ISSUE_KEY}`);
+  }
+  console.log();
 
   // ── Step 5: Create executions + update statuses ──────────────────────────
   console.log('──────────────────────────────────────────────────────');
@@ -287,20 +397,33 @@ async function main() {
     const tcKey  = tc.key;
     const result = byKey.get(tcKey);  // always exists — we pre-filtered
     const status = result.status;
-    const comment = result.error
-      ? `Playwright error: ${result.error}`
-      : `Automated run — cycle ${cycle.key}`;
 
     let execId;
     try {
       execId = await createExecution(cycle.key, tcKey);
-      await updateExecution(execId, status, comment);
+      // Build rich execution comment for History
+      const richComment = [
+        `**Status:** ${status}`,
+        `**Test Case:** ${tcKey}`,
+        `**Cycle:** ${cycle.key}`,
+        `**Environment:** ${ENV_NAME}`,
+        `**Executed:** ${new Date().toISOString()}`
+      ];
+      if (result.error) richComment.push(`**Error:** ${result.error}`);
+
+      await updateExecution(execId, status, richComment.join('\n'));
       summary[status] = (summary[status] || 0) + 1;
 
       // Mark as Automated in Zephyr
       let autoMarked = await markAsAutomated(tcKey);
 
-      rows.push({ tcKey, name: tc.name, status, synced: true, autoMarked });
+      // Traceability — link execution to Jira issue
+      let execLinked = false;
+      if (story && story.id) {
+        execLinked = await linkExecutionToIssue(execId, story.id);
+      }
+
+      rows.push({ tcKey, name: tc.name, status, synced: true, autoMarked, execLinked });
     } catch (err) {
       summary.error++;
       const msg = (err.response && JSON.stringify(err.response.data)) || err.message;
@@ -321,7 +444,8 @@ async function main() {
     const auto   = r.autoMarked === true  ? ` \x1b[32m[Automated ✓]\x1b[0m`
                  : r.autoMarked === false ? ` \x1b[33m[mark failed]\x1b[0m`
                  : '';
-    console.log(`  ${col}${icon}${RESET} ${r.tcKey.padEnd(10)} ${name} [${col}${r.status}${RESET}]${auto}${synced}`);
+    const linked = r.execLinked ? ` \x1b[36m[Linked ✓]\x1b[0m` : '';
+    console.log(`  ${col}${icon}${RESET} ${r.tcKey.padEnd(10)} ${name} [${col}${r.status}${RESET}]${auto}${linked}${synced}`);
     if (!r.synced && r.err) console.log(`          ${'\x1b[31m'}${r.err}${RESET}`);
   }
 
@@ -338,6 +462,13 @@ async function main() {
   if (summary.error) console.log(`  \x1b[31mSync err\x1b[0m  : ${summary.error}`);
   console.log(`\n  Playwright exit code: ${playwrightExitCode === 0 ? '\x1b[32m0 (all passed)\x1b[0m' : '\x1b[31m' + playwrightExitCode + ' (some failed)\x1b[0m'}`);
   console.log(`  HTML report : playwright-report/index.html`);
+
+  // ── History — mark cycle as Done ─────────────────────────────────────────
+  const cycleDone = await updateCycleStatus(cycle.key, 'Done');
+  console.log(cycleDone
+    ? `  ✓ Cycle ${cycle.key} status → Done`
+    : `  ⚠ Failed to update cycle status to Done`);
+
   console.log('\n══════════════════════════════════════════════════════\n');
 
   // Exit with playwright's exit code so CI pipelines respect it
