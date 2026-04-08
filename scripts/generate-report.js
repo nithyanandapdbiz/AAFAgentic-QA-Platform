@@ -70,9 +70,18 @@ function collectTests(suites, parentFile = '') {
             default:         status = 'Fail';
           }
 
-          // Extract error message
+          // Extract error message — include full message, snippet, and stack trace
           if (lastResult.error) {
-            errorMsg = (lastResult.error.message || String(lastResult.error)).slice(0, 600);
+            const errParts = [];
+            const errMsg = lastResult.error.message || String(lastResult.error);
+            errParts.push(errMsg);
+            if (lastResult.error.snippet) {
+              errParts.push('\n── Code Snippet ──\n' + lastResult.error.snippet);
+            }
+            if (lastResult.error.stack && lastResult.error.stack !== errMsg) {
+              errParts.push('\n── Stack Trace ──\n' + lastResult.error.stack);
+            }
+            errorMsg = errParts.join('\n').slice(0, 4000);
           }
 
           // Extract steps array — flatten nested steps one level deep
@@ -90,7 +99,9 @@ function collectTests(suites, parentFile = '') {
           steps = flattenSteps(rawSteps).map(s => ({
             title:    s.title || '(step)',
             duration: s.duration || 0,
-            error:    s.error ? (s.error.message || String(s.error)).slice(0, 300) : null,
+            error:    s.error ? (s.error.message || String(s.error)).slice(0, 1500) : null,
+            stack:    s.error && s.error.stack ? s.error.stack.slice(0, 1500) : null,
+            snippet:  s.error && s.error.snippet ? s.error.snippet.slice(0, 800) : null,
             child:    !!s._child
           }));
 
@@ -216,9 +227,18 @@ function buildHtml(tests, runDate, totalDuration) {
           ? `<span class="step-badge fail">✗ FAILED</span>`
           : `<span class="step-badge pass">✓ Pass</span>`;
         const indent   = s.child ? 'style="padding-left:28px;color:#546e7a;"' : '';
-        const errRow   = isFailed
-          ? `<tr class="step-err-row"><td colspan="4"><pre class="step-error">${escHtml(s.error)}</pre></td></tr>`
-          : '';
+        // Build detailed error block with snippet and stack
+        let errRow = '';
+        if (isFailed) {
+          const errParts = [`<pre class="step-error">${escHtml(s.error)}</pre>`];
+          if (s.snippet) {
+            errParts.push(`<details class="step-err-details"><summary>Code Snippet</summary><pre class="step-error step-snippet">${escHtml(s.snippet)}</pre></details>`);
+          }
+          if (s.stack) {
+            errParts.push(`<details class="step-err-details"><summary>Stack Trace</summary><pre class="step-error step-stack">${escHtml(s.stack)}</pre></details>`);
+          }
+          errRow = `<tr class="step-err-row"><td colspan="4">${errParts.join('\n')}</td></tr>`;
+        }
         return `<tr class="${rowClass}">
           <td class="step-num">${si + 1}</td>
           <td class="step-title" ${indent}>${escHtml(s.title)}</td>
@@ -290,7 +310,9 @@ function buildHtml(tests, runDate, totalDuration) {
       : '';
 
     const errorHtml = t.errorMsg
-      ? `<pre class="error-block">${escHtml(t.errorMsg)}</pre>`
+      ? `<div class="error-section">
+          <pre class="error-block">${escHtml(t.errorMsg)}</pre>
+        </div>`
       : '';
 
     return `
@@ -369,6 +391,11 @@ function buildHtml(tests, runDate, totalDuration) {
   .step-error { font-size: .76rem; color: #b71c1c; white-space: pre-wrap;
                 word-break: break-word; background: #fff0f0; padding: 8px;
                 border-radius: 4px; border: 1px solid #ffcdd2; }
+  .step-err-details { margin-top: 6px; }
+  .step-err-details summary { cursor: pointer; font-size: .74rem; color: #546e7a;
+                              font-weight: 600; margin-bottom: 4px; }
+  .step-snippet { background: #fff8e1; border-color: #ffe082; color: #e65100; }
+  .step-stack   { background: #f3e5f5; border-color: #ce93d8; color: #4a148c; font-size: .7rem; }
 
   /* ── Failure media ───────────────────────────────────────────────────────── */
   .failure-media { margin-bottom: 20px; }

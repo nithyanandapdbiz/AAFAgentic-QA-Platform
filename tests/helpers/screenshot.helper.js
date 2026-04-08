@@ -14,14 +14,15 @@ const SCREENSHOTS_ROOT = path.resolve(__dirname, '..', '..', 'test-results', 'sc
  *  1. sh.step('Label', async () => { ... })
  *     Wraps actions inside a named Playwright test.step() block.
  *     A full-page screenshot is taken AFTER the step's actions complete.
- *     Screenshots are saved to:
- *       test-results/screenshots/<test-slug>/step-01-label.png
+ *     Screenshots are:
+ *       - Saved to disk: test-results/screenshots/<test-slug>/step-01-label.png
+ *       - Attached to testInfo via testInfo.attach() so they appear in:
+ *         • Allure report (allure-playwright picks them up automatically)
+ *         • Playwright HTML report
+ *         • Playwright JSON reporter (paths in test-results.json)
  *
  *  2. sh.capture('label')
  *     Takes a standalone screenshot at any point — not inside a step block.
- *
- * Screenshots are read by scripts/generate-report.js to build the
- * custom HTML report at custom-report/index.html.
  *
  * Usage inside a spec file:
  *
@@ -69,7 +70,7 @@ class ScreenshotHelper {
     const num = String(this._counter).padStart(2, '0');
     return test.step(`${num}. ${label}`, async () => {
       await fn();
-      await this._capture(`step-${num}-${label}`);
+      await this._capture(`step-${num}-${label}`, `${num}. ${label}`);
       // Visual AI checkpoint — no-op when eyes is null or API key is absent
       if (this._eyes) await this._eyes.check(`${num}. ${label}`);
     });
@@ -81,13 +82,13 @@ class ScreenshotHelper {
    * @param {string} label  Descriptive label used as the file name
    */
   async capture(label) {
-    await this._capture(label);
+    await this._capture(label, label);
     if (this._eyes) await this._eyes.check(label);
   }
 
   // ── Internal ──────────────────────────────────────────────────────────────
 
-  async _capture(label) {
+  async _capture(label, attachName) {
     const slug = label
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -97,6 +98,15 @@ class ScreenshotHelper {
     try {
       const buffer = await this.page.screenshot({ fullPage: true });
       fs.writeFileSync(filePath, buffer);
+
+      // Attach to Playwright testInfo so the screenshot appears in:
+      //   - Allure report (allure-playwright reads testInfo attachments)
+      //   - Playwright HTML reporter
+      //   - Playwright JSON reporter (accessible in test-results.json)
+      await this.testInfo.attach(attachName || label, {
+        body: buffer,
+        contentType: 'image/png',
+      });
     } catch {
       // Silently skip if the page is in a closed or crashed state
     }
