@@ -1,3 +1,4 @@
+'use strict';
 const fs = require("fs");
 const path = require("path");
 
@@ -5,11 +6,12 @@ function generateTest(tc) {
   const name = tc.title.replace(/\W+/g, "_").toLowerCase();
   const dir = path.resolve("tests/generated");
   fs.mkdirSync(dir, { recursive: true });
-  const content = `import { test, expect } from '@playwright/test';
+  const content = `'use strict';
+const { test, expect } = require('../fixtures/base.fixture');
 
-test('${tc.title}', async ({ page }) => {
-  await page.goto('/');
+test('${tc.title}', async ({ page, loginPage, addEmployeePage, sh, eyes }, testInfo) => {
   ${(tc.steps || []).map(s => `// ${s}`).join("\n  ")}
+  await page.goto('/');
   expect(true).toBeTruthy();
 });
 `;

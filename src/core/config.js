@@ -1,4 +1,4 @@
-require("dotenv").config();
+'use strict';
 
 // Strip any trailing slash from JIRA_URL to avoid double-slash in API paths
 const jiraUrl = (process.env.JIRA_URL || "").replace(/\/$/, "");

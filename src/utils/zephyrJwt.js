@@ -1,3 +1,4 @@
+'use strict';
 /**
  * Zephyr Essential Cloud API v2.8 authentication helper.
  * Auth is a plain API token passed as: Authorization: <token>

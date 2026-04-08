@@ -2,31 +2,24 @@
 /**
  * AddEmployeePage — OrangeHRM PIM → Add Employee
  * URL: /web/index.php/pim/addEmployee
+ * Locators: AddEmployeePage.yml
  */
+const path = require('path');
+const { loadLocators } = require('../helpers/locatorLoader');
+const loc = loadLocators(path.join(__dirname, 'AddEmployeePage.yml'));
+
 class AddEmployeePage {
   constructor(page) {
     this.page = page;
 
-    // ── Name fields ──────────────────────────────────────────
-    this.firstNameInput  = page.locator('input[name="firstName"]');
-    this.middleNameInput = page.locator('input[name="middleName"]');
-    this.lastNameInput   = page.locator('input[name="lastName"]');
-
-    // ── Employee ID ─────────────────────────────────────────
-    // OrangeHRM renders an auto-generated Employee Id input without a 'name'
-    // attribute; it is the sole input inside the row labelled "Employee Id".
-    this.employeeIdInput = page
-      .locator('.oxd-input-group')
-      .filter({ has: page.locator('label:has-text("Employee Id")') })
-      .locator('input.oxd-input');
-
-    // ── Buttons ──────────────────────────────────────────────
-    this.saveButton   = page.locator('button[type="submit"]');
-    this.cancelButton = page.locator('button.oxd-button--ghost');
-
-    // ── Feedback ─────────────────────────────────────────────
-    // OrangeHRM shows inline error spans on failed validation
-    this.validationErrors = page.locator('.oxd-input-field-error-message');
+    // ── Locators (from AddEmployeePage.yml) ──────────────────
+    this.firstNameInput  = page.locator(loc.firstNameInput);
+    this.middleNameInput = page.locator(loc.middleNameInput);
+    this.lastNameInput   = page.locator(loc.lastNameInput);
+    this.employeeIdInput = page.locator(loc.employeeIdInput);
+    this.saveButton      = page.locator(loc.saveButton);
+    this.cancelButton    = page.locator(loc.cancelButton);
+    this.validationErrors = page.locator(loc.validationErrors);
   }
 
   // ── Actions ───────────────────────────────────────────────
@@ -34,7 +27,7 @@ class AddEmployeePage {
   /** Navigate to the Add Employee form. */
   async navigate() {
     await this.page.goto('/web/index.php/pim/addEmployee');
-    await this.page.waitForSelector('input[name="firstName"]', { timeout: 15000 });
+    await this.page.waitForSelector(loc.firstNameInput, { timeout: 15000 });
   }
 
   /**

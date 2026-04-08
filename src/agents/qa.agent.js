@@ -1,4 +1,6 @@
+'use strict';
 const { extractText } = require("./planner.agent");
+const logger = require("../utils/logger");
 
 // ─── GWT step classifier ──────────────────────────────────────────────────────
 /**
@@ -443,7 +445,217 @@ async function generate(story, plan) {
     testCases.push(acTc);
   }
 
+  // ── Dynamic test generation (contextual gap analysis) ──────────────
+  const dynamicCases = generateDynamicTestCases(story, plan, subject, testCases);
+  if (dynamicCases.length > 0) {
+    logger.info(`Dynamic generator produced ${dynamicCases.length} additional test case(s)`);
+    testCases.push(...dynamicCases);
+  }
+
   return testCases;
+}
+
+// ── Dynamic Test Case Generator (rule-based gap analysis) ────────────
+// Each pattern detects a story context and produces test cases that the static
+// templates do NOT cover — domain-specific, integration, concurrency, etc.
+const DYNAMIC_PATTERNS = [
+  {
+    // Session / timeout / concurrency scenarios for auth flows
+    match: /login|auth|sign.?in|session/i,
+    excludeTag: "session",
+    build(subject) {
+      return {
+        title: `Verify session timeout and re-authentication for ${subject}`,
+        description: `Ensure the system enforces session expiry after inactivity and requires re-authentication.`,
+        designTechnique: "State Transition (ST) — Active → Expired → Re-auth",
+        testData: [
+          { scenario: "Idle 15+ minutes", expectedResult: "Session expired, redirect to login" },
+          { scenario: "Active within timeout", expectedResult: "Session remains active" }
+        ],
+        steps: [
+          `[Pre-condition] User is logged in as Admin. Note the current time.`,
+          `Leave the application idle without any interaction for the configured session timeout period.`,
+          `After the timeout period, attempt to navigate to a protected page or perform an action.`,
+          `Verify the system redirects to the login page or shows a "Session Expired" message.`,
+          `Log in again with valid credentials and verify the session resumes cleanly.`,
+          `Verify no partial actions were committed during the expired session.`
+        ],
+        expected: `Session expires after the configured timeout. User is redirected to login. No data is lost or corrupted. Re-authentication works seamlessly.`,
+        priority: "High",
+        tags: ["session", "security", "state-transition", "dynamic-generated"]
+      };
+    }
+  },
+  {
+    // Concurrent access scenario
+    match: /create|add|save|submit|update|edit/i,
+    excludeTag: "concurrency",
+    build(subject) {
+      return {
+        title: `Verify concurrent access handling for ${subject}`,
+        description: `Ensure the system handles simultaneous ${subject} operations from multiple users without data corruption.`,
+        designTechnique: "Error Guessing (EG) — Concurrency / race condition",
+        testData: [
+          { scenario: "Two users submit same form simultaneously", expectedResult: "One succeeds, other gets conflict error or both succeed without corruption" }
+        ],
+        steps: [
+          `[Pre-condition] Open two separate browser sessions, both logged in as different users.`,
+          `In browser 1: navigate to the ${subject} form and fill in all required fields.`,
+          `In browser 2: navigate to the same ${subject} form and fill in all required fields with different data.`,
+          `Submit both forms as close to simultaneously as possible.`,
+          `Verify no server errors (500), crashes, or data corruption occur.`,
+          `Verify both records are created correctly with their respective data, or one receives a meaningful conflict error.`,
+          `Check the database / list view to ensure no duplicate or merged records exist.`
+        ],
+        expected: `System handles concurrent submissions gracefully. Either both succeed independently or the second submission receives a clear error. No data corruption or lost updates.`,
+        priority: "Normal",
+        tags: ["concurrency", "edge-case", "error-guessing", "dynamic-generated"]
+      };
+    }
+  },
+  {
+    // Keyboard / accessibility scenario for form-based stories
+    match: /form|field|input|page|screen|ui/i,
+    excludeTag: "accessibility",
+    build(subject) {
+      return {
+        title: `Verify keyboard navigation and accessibility for ${subject}`,
+        description: `Ensure all interactive elements are keyboard-accessible and screen-reader friendly for ${subject}.`,
+        designTechnique: "Use Case / Scenario-based (UC) — Accessibility compliance",
+        testData: [
+          { element: "Form fields", expected: "Tab-navigable in logical order" },
+          { element: "Submit button", expected: "Reachable via Tab, activatable via Enter" },
+          { element: "Error messages", expected: "Announced by screen reader" }
+        ],
+        steps: [
+          `[Pre-condition] User is logged in. Navigate to the ${subject} page.`,
+          `Without using the mouse, press Tab repeatedly to navigate through all form fields.`,
+          `Verify the tab order follows a logical top-to-bottom, left-to-right sequence.`,
+          `Verify each focused element has a visible focus indicator (outline or highlight).`,
+          `Navigate to the Submit/Save button using Tab and press Enter to submit.`,
+          `Verify the form submits successfully via keyboard alone.`,
+          `Trigger a validation error and verify the error message is associated with the field (aria-describedby or similar).`
+        ],
+        expected: `All form elements are reachable via keyboard. Tab order is logical. Focus indicators are visible. Error messages are programmatically associated with fields. No mouse-only interactions required.`,
+        priority: "Normal",
+        tags: ["accessibility", "usability", "use-case", "dynamic-generated"]
+      };
+    }
+  },
+  {
+    // Back/forward browser navigation
+    match: /form|save|submit|create|add/i,
+    excludeTag: "browser-navigation",
+    build(subject) {
+      return {
+        title: `Verify browser back/forward navigation during ${subject}`,
+        description: `Ensure the application handles browser navigation buttons correctly during the ${subject} flow.`,
+        designTechnique: "State Transition (ST) — Navigation state recovery",
+        testData: [
+          { action: "Browser Back after submit", expectedResult: "No duplicate submission" },
+          { action: "Browser Back mid-form", expectedResult: "Form data may be lost, no crash" }
+        ],
+        steps: [
+          `[Pre-condition] User is logged in as Admin. Navigate to ${subject} form.`,
+          `Fill in all required fields with valid data but do NOT submit.`,
+          `Click the browser Back button. Then click browser Forward button.`,
+          `Verify the form reloads without errors (data may or may not be preserved).`,
+          `Fill the form again and click Submit. Verify success.`,
+          `Immediately click the browser Back button after successful submission.`,
+          `Verify the system does NOT re-submit the form (no duplicate record created).`,
+          `Click browser Forward button and verify the confirmation/list page loads correctly.`
+        ],
+        expected: `Browser navigation does not cause duplicate submissions, crashes, or unhandled errors. The user can navigate back and forward without corrupting application state.`,
+        priority: "Normal",
+        tags: ["browser-navigation", "state-transition", "edge-case", "dynamic-generated"]
+      };
+    }
+  },
+  {
+    // Network / slow response scenario
+    match: /save|submit|create|upload|api/i,
+    excludeTag: "network-resilience",
+    build(subject) {
+      return {
+        title: `Verify system resilience under slow network for ${subject}`,
+        description: `Ensure the application handles slow or interrupted network conditions gracefully during ${subject}.`,
+        designTechnique: "Error Guessing (EG) — Network failure scenario",
+        testData: [
+          { condition: "Slow network (3G)", expectedResult: "Loading indicator shown, operation completes or times out gracefully" },
+          { condition: "Double-click submit", expectedResult: "Only one record created" }
+        ],
+        steps: [
+          `[Pre-condition] User is logged in. Navigate to ${subject} form. Open browser DevTools and throttle network to Slow 3G.`,
+          `Fill in all required fields and click Submit.`,
+          `Verify a loading indicator (spinner, disabled button) appears during the request.`,
+          `Verify the submit button is disabled to prevent double-click submission.`,
+          `Wait for the response — verify it either succeeds or shows a timeout/error message.`,
+          `Reset network to normal. Verify only one record was created (no duplicates from retry).`,
+          `[Edge case] Disconnect network mid-submission and verify the system shows an appropriate offline/error message.`
+        ],
+        expected: `Loading indicator prevents user confusion. Double-submit is prevented. Timeout shows a clear error. Reconnection allows retry without data duplication.`,
+        priority: "Low",
+        tags: ["network-resilience", "error-guessing", "performance", "dynamic-generated"]
+      };
+    }
+  },
+  {
+    // Clipboard/paste scenario for data input
+    match: /input|field|form|enter|data/i,
+    excludeTag: "clipboard-paste",
+    build(subject) {
+      return {
+        title: `Verify copy-paste and autofill behaviour for ${subject}`,
+        description: `Ensure fields handle pasted content (including hidden characters) and browser autofill correctly.`,
+        designTechnique: "Error Guessing (EG) — Clipboard and autofill edge cases",
+        testData: [
+          { input: "Pasted text with leading/trailing whitespace", expected: "Trimmed or accepted without error" },
+          { input: "Pasted text with newlines", expected: "Newlines stripped for single-line fields" },
+          { input: "Browser autofill", expected: "Fields populated, validation still applies" }
+        ],
+        steps: [
+          `[Pre-condition] User is logged in. Navigate to ${subject} form.`,
+          `Copy text with leading/trailing spaces from an external source and paste into the First Name field.`,
+          `Verify the system either trims the whitespace or accepts it without breaking validation.`,
+          `Copy multi-line text and paste into a single-line field (e.g. Last Name).`,
+          `Verify newline characters are stripped and the field shows clean single-line text.`,
+          `Allow or trigger browser autofill for the form fields.`,
+          `Verify autofilled values are recognized by form validation and do not bypass required-field checks.`
+        ],
+        expected: `Pasted content is handled gracefully — whitespace trimmed, newlines stripped from single-line fields. Browser autofill works correctly and validation still applies.`,
+        priority: "Low",
+        tags: ["clipboard-paste", "edge-case", "error-guessing", "dynamic-generated"]
+      };
+    }
+  }
+];
+
+function generateDynamicTestCases(story, plan, subject, existingCases) {
+  const fields = story.fields || {};
+  const summary = fields.summary || "";
+  const description = extractText(fields.description);
+  const allText = `${summary} ${description}`.toLowerCase();
+
+  const existingTags = new Set(existingCases.flatMap(tc => tc.tags || []));
+  const existingTitlesLower = new Set(existingCases.map(tc => (tc.title || "").toLowerCase()));
+
+  const dynamicCases = [];
+
+  for (const pattern of DYNAMIC_PATTERNS) {
+    // Skip if the story text doesn't match this pattern's context
+    if (!pattern.match.test(allText)) continue;
+    // Skip if existing TCs already cover this category
+    if (existingTags.has(pattern.excludeTag)) continue;
+
+    const tc = pattern.build(subject);
+    // Final dedup check against existing titles
+    if (existingTitlesLower.has(tc.title.toLowerCase())) continue;
+
+    tc.gwt = stepsToGWT(tc.steps);
+    dynamicCases.push(tc);
+  }
+
+  return dynamicCases;
 }
 
 module.exports = { generate, stepsToGWT };

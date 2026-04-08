@@ -1,3 +1,4 @@
+'use strict';
 const { createTestCase } = require("../tools/zephyr.client");
 const { generateTest } = require("../tools/playwright.generator");
 

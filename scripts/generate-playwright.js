@@ -98,17 +98,14 @@ function detectType(name, labels) {
 // ─── Spec-body generators per test type ──────────────────────────────────────
 //
 //  Each function receives (tc, steps) and returns the BODY that goes inside
-//  the async ({ page }, testInfo) => { ... } test callback.
-//  Every body starts with `const sh = new ScreenshotHelper(page, testInfo);`
-//  and uses sh.step() to wrap each logical step — capturing a screenshot after.
+//  the async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => { ... }
+//  test callback.  Fixtures from base.fixture.js provide POM objects, Eyes,
+//  and ScreenshotHelper — no manual construction needed.
 //
 const SPEC_BODIES = {
 
   // ── TC: Happy Path ─────────────────────────────────────────────────────────
   happy_path: () => `
-    const sh              = new ScreenshotHelper(page, testInfo);
-    const loginPage       = new LoginPage(page);
-    const addEmployeePage = new AddEmployeePage(page);
 
     await sh.step('Open Login Page', async () => {
       await loginPage.goto();
@@ -141,9 +138,6 @@ const SPEC_BODIES = {
 
   // ── TC: Mandatory Fields ───────────────────────────────────────────────────
   mandatory_fields: () => `
-    const sh              = new ScreenshotHelper(page, testInfo);
-    const loginPage       = new LoginPage(page);
-    const addEmployeePage = new AddEmployeePage(page);
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
@@ -171,9 +165,6 @@ const SPEC_BODIES = {
 
   // ── TC: Invalid Data ───────────────────────────────────────────────────────
   invalid_data: () => `
-    const sh              = new ScreenshotHelper(page, testInfo);
-    const loginPage       = new LoginPage(page);
-    const addEmployeePage = new AddEmployeePage(page);
 
     await sh.step('Log in and open Add Employee form', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
@@ -195,9 +186,6 @@ const SPEC_BODIES = {
 
   // ── TC: Boundary Values ────────────────────────────────────────────────────
   boundary_values: () => `
-    const sh              = new ScreenshotHelper(page, testInfo);
-    const loginPage       = new LoginPage(page);
-    const addEmployeePage = new AddEmployeePage(page);
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
@@ -234,9 +222,6 @@ const SPEC_BODIES = {
 
   // ── TC: Duplicate Entry ────────────────────────────────────────────────────
   duplicate_entry: () => `
-    const sh              = new ScreenshotHelper(page, testInfo);
-    const loginPage       = new LoginPage(page);
-    const addEmployeePage = new AddEmployeePage(page);
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
@@ -264,9 +249,6 @@ const SPEC_BODIES = {
 
   // ── TC: Special Characters ─────────────────────────────────────────────────
   special_characters: () => `
-    const sh              = new ScreenshotHelper(page, testInfo);
-    const loginPage       = new LoginPage(page);
-    const addEmployeePage = new AddEmployeePage(page);
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
@@ -290,9 +272,6 @@ const SPEC_BODIES = {
 
   // ── TC: UI Feedback ────────────────────────────────────────────────────────
   ui_feedback: () => `
-    const sh              = new ScreenshotHelper(page, testInfo);
-    const loginPage       = new LoginPage(page);
-    const addEmployeePage = new AddEmployeePage(page);
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
@@ -322,10 +301,6 @@ const SPEC_BODIES = {
 
   // ── TC: Cancel / Discard ───────────────────────────────────────────────────
   cancel_discard: () => `
-    const sh               = new ScreenshotHelper(page, testInfo);
-    const loginPage        = new LoginPage(page);
-    const addEmployeePage  = new AddEmployeePage(page);
-    const employeeListPage = new EmployeeListPage(page);
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
@@ -353,15 +328,10 @@ const SPEC_BODIES = {
 
   // ── TC: Data Persistence ───────────────────────────────────────────────────
   data_persistence: () => `
-    const sh              = new ScreenshotHelper(page, testInfo);
-    const loginPage       = new LoginPage(page);
-    const addEmployeePage = new AddEmployeePage(page);
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
     });
-
-    const uniqueSuffix = String(Date.now()).slice(-5);
 
     await sh.step('Navigate to Add Employee and fill with known values', async () => {
       await addEmployeePage.navigate();
@@ -386,9 +356,6 @@ const SPEC_BODIES = {
 
   // ── TC: Maximum Records ────────────────────────────────────────────────────
   maximum_records: () => `
-    const sh               = new ScreenshotHelper(page, testInfo);
-    const loginPage        = new LoginPage(page);
-    const employeeListPage = new EmployeeListPage(page);
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
@@ -415,8 +382,6 @@ const SPEC_BODIES = {
 
   // ── TC: RBAC ───────────────────────────────────────────────────────────────
   rbac: () => `
-    const sh        = new ScreenshotHelper(page, testInfo);
-    const loginPage = new LoginPage(page);
 
     await sh.step('Log in as Admin and access Employee List', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
@@ -443,9 +408,6 @@ const SPEC_BODIES = {
 
   // ── TC: Generic fallback ───────────────────────────────────────────────────
   generic: (tc, steps) => `
-    const sh              = new ScreenshotHelper(page, testInfo);
-    const loginPage       = new LoginPage(page);
-    const addEmployeePage = new AddEmployeePage(page);
 
     await sh.step('Log in as HR Admin', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);
@@ -497,23 +459,15 @@ ${stepComments}
 // Application   : OrangeHRM — https://opensource-demo.orangehrmlive.com
 // Module        : PIM → Add Employee
 // Credentials   : Admin / admin123
+// Fixtures      : base.fixture.js (POM + Applitools Eyes + ScreenshotHelper)
 // =============================================================================
 'use strict';
-const { test, expect }           = require('@playwright/test');
-const { LoginPage }              = require('../pages/LoginPage');
-const { AddEmployeePage }        = require('../pages/AddEmployeePage');
-const { EmployeeListPage }       = require('../pages/EmployeeListPage');
-const { ScreenshotHelper }       = require('../helpers/screenshot.helper');
+const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
 test.describe('${key} | ${title}', () => {
 
-  test.beforeEach(async ({ page }) => {
-    // Start each test with a clean session
-    await page.context().clearCookies();
-  });
-
-  test('${title}', async ({ page }, testInfo) => {${body}
+  test('${title}', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {${body}
   });
 
 });

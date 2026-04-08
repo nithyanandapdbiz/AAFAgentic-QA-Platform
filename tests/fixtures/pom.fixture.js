@@ -2,11 +2,7 @@
 /**
  * pom.fixture.js
  *
- * Extends playwright-bdd's test with Page Object Model fixtures.
- * Consumed by step definitions via createBdd(test).
- *
- * NOTE: Must extend playwright-bdd's 'test' (not @playwright/test directly)
- * so that createBdd() recognises the fixture chain correctly.
+ * Extends @playwright/test with Page Object Model fixtures.
  *
  * Fixtures:
  *   loginPage        — LoginPage instance
@@ -15,7 +11,7 @@
  *   uniqueSuffix     — 5-digit timestamp suffix for unique test data
  */
 
-const { test: base } = require('playwright-bdd');
+const { test: base, expect } = require('@playwright/test');
 const { LoginPage }        = require('../pages/LoginPage');
 const { AddEmployeePage }  = require('../pages/AddEmployeePage');
 const { EmployeeListPage } = require('../pages/EmployeeListPage');
@@ -38,5 +34,4 @@ const test = base.extend({
   },
 });
 
-const { expect } = base;
 module.exports = { test, expect };

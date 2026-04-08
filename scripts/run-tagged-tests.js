@@ -276,17 +276,17 @@ ${RESET}`);
     process.exit(0);
   }
 
-  const TOTAL   = 3;
+  const TOTAL   = 6;
   const summary = [];
   const t0      = Date.now();
 
   // ── Stage 1: Execute filtered tests ───────────────────────────────────────
-  stageHeader(1, TOTAL, `Run [tag: ${rawTag}] — ${specFiles.length} spec(s) [${useHeadless ? 'HEADLESS' : 'HEADED'}]`);
+  stageHeader(1, TOTAL, `Run + Applitools Eyes [tag: ${rawTag}] — ${specFiles.length} spec(s) [${useHeadless ? 'HEADLESS' : 'HEADED'}]`);
   const ts1   = Date.now();
   const pwExit = runPlaywright(specFiles, grepPattern);
   const ms1    = Date.now() - ts1;
-  stageDone(1, `Execute [tag: ${rawTag}]`, pwExit === 0 || true, ms1);
-  summary.push({ num: 1, label: `Execute [tag: ${rawTag}]`, status: pwExit === 0 ? 'PASS' : 'WARN', ms: ms1 });
+  stageDone(1, `Execute + Applitools Eyes [tag: ${rawTag}]`, pwExit === 0 || true, ms1);
+  summary.push({ num: 1, label: `Execute + Eyes [tag: ${rawTag}]`, status: pwExit === 0 ? 'PASS' : 'WARN', ms: ms1 });
 
   // ── Stage 2: Self-Healing Agent ────────────────────────────────────────────
   stageHeader(2, TOTAL, 'Self-Healing Agent → repair & re-run failures', flags.has('--skip-heal'));
@@ -309,6 +309,33 @@ ${RESET}`);
   stageDone(3, 'Generate HTML report', okReport, ms3);
   summary.push({ num: 3, label: 'Generate HTML report', status: okReport ? 'PASS' : 'FAIL', ms: ms3 });
 
+  // ── Stage 4: Allure report ─────────────────────────────────────────────────
+  stageHeader(4, TOTAL, 'Generate Allure report');
+  const ts4 = Date.now();
+  const { ok: okAllure } = runScript('scripts/generate-allure-report.js');
+  const ms4 = Date.now() - ts4;
+  stageDone(4, 'Generate Allure report', okAllure || true, ms4);
+  summary.push({ num: 4, label: 'Generate Allure report', status: okAllure ? 'PASS' : 'WARN', ms: ms4 });
+
+  // ── Stage 5: Applitools visual test report ─────────────────────────────────
+  stageHeader(5, TOTAL, 'Generate Applitools visual test report');
+  const ts5 = Date.now();
+  const { ok: okEyes } = runScript('scripts/generate-applitools-report.js');
+  const ms5 = Date.now() - ts5;
+  stageDone(5, 'Generate Applitools report', okEyes || true, ms5);
+  summary.push({ num: 5, label: 'Generate Applitools report', status: okEyes ? 'PASS' : 'WARN', ms: ms5 });
+  // ── Stage 6: Git Agent — auto-commit + push ──────────────────────────────
+  stageHeader(6, TOTAL, 'Git Agent — auto-commit + push', flags.has('--skip-git'));
+  if (flags.has('--skip-git')) {
+    console.log(`  ${C.yellow}↷ Skipped  (--skip-git)${RESET}\n`);
+    summary.push({ num: 6, label: 'Git Agent', status: 'SKIPPED', ms: 0 });
+  } else {
+    const ts6 = Date.now();
+    const { ok: okGit } = runScript('scripts/git-sync.js');
+    const ms6 = Date.now() - ts6;
+    stageDone(6, 'Git Agent', okGit || true, ms6);
+    summary.push({ num: 6, label: 'Git Agent', status: okGit ? 'PASS' : 'WARN', ms: ms6 });
+  }
   // ── Summary ────────────────────────────────────────────────────────────────
   const totalSec = ((Date.now() - t0) / 1000).toFixed(1);
   console.log(`\n${C.bold}${C.white}┌── Execution Summary (tag: ${rawTag}) ${'─'.repeat(27)}${RESET}`);
@@ -323,10 +350,13 @@ ${RESET}`);
   }
   console.log(`${C.bold}${C.white}└── Total: ${totalSec}s ${'─'.repeat(48)}${RESET}\n`);
 
-  const reportPath = path.join(ROOT, 'custom-report', 'index.html');
-  if (fs.existsSync(reportPath)) {
-    console.log(`  ${C.cyan}📄  Report:  custom-report/index.html${RESET}\n`);
-  }
+  const reportPath    = path.join(ROOT, 'custom-report', 'index.html');
+  const allurePath    = path.join(ROOT, 'allure-report', 'index.html');
+  const applitoolsPath = path.join(ROOT, 'custom-report', 'applitools-report.html');
+  if (fs.existsSync(reportPath))     console.log(`  ${C.cyan}\ud83d\udcc4  Custom Report      : custom-report/index.html${RESET}`);
+  if (fs.existsSync(allurePath))     console.log(`  ${C.cyan}\ud83d\udcca  Allure Report      : allure-report/index.html${RESET}`);
+  if (fs.existsSync(applitoolsPath)) console.log(`  ${C.cyan}\ud83d\udc41  Applitools Report  : custom-report/applitools-report.html${RESET}`);
+  console.log();
 
   process.exit(summary.some(s => s.status === 'FAIL') ? 1 : 0);
 }

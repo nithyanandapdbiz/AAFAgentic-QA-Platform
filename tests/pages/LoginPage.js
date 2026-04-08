@@ -2,22 +2,27 @@
 /**
  * LoginPage — OrangeHRM Login
  * URL: /web/index.php/auth/login
+ * Locators: LoginPage.yml
  */
+const path = require('path');
+const { loadLocators } = require('../helpers/locatorLoader');
+const loc = loadLocators(path.join(__dirname, 'LoginPage.yml'));
+
 class LoginPage {
   constructor(page) {
     this.page = page;
 
-    // ── Locators ───────────────────────────────────────────────
-    this.usernameInput = page.locator('input[name="username"]');
-    this.passwordInput = page.locator('input[name="password"]');
-    this.loginButton   = page.locator('button[type="submit"]');
-    this.errorAlert    = page.locator('.oxd-alert--error');
+    // ── Locators (from LoginPage.yml) ──────────────────────
+    this.usernameInput = page.locator(loc.usernameInput);
+    this.passwordInput = page.locator(loc.passwordInput);
+    this.loginButton   = page.locator(loc.loginButton);
+    this.errorAlert    = page.locator(loc.errorAlert);
   }
 
   /** Navigate to the login page. */
   async goto() {
     await this.page.goto('/web/index.php/auth/login');
-    await this.page.waitForSelector('input[name="username"]', { timeout: 15000 });
+    await this.page.waitForSelector(loc.usernameInput, { timeout: 15000 });
   }
 
   /**

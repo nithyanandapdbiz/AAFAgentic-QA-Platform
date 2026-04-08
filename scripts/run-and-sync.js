@@ -251,13 +251,20 @@ async function main() {
   console.log(`  Tests collected: ${allTests.length}`);
   console.log(`  Zephyr keys found: ${byKey.size}\n`);
 
-  // ── Step 3: Fetch Zephyr test cases ─────────────────────────────────────
+  // ── Step 3: Fetch Zephyr test cases (only those with Playwright results) ─
   console.log('──────────────────────────────────────────────────────');
   console.log('  Step 3 — Fetch Test Cases from Zephyr');
   console.log('──────────────────────────────────────────────────────\n');
 
-  const zephyrTCs = await fetchTestCases();
-  console.log(`  Found ${zephyrTCs.length} test case(s) in Zephyr (project: ${PROJECT_KEY})\n`);
+  const allZephyrTCs = await fetchTestCases();
+  console.log(`  Total test cases in Zephyr: ${allZephyrTCs.length}`);
+
+  // Only sync TCs that have a matching Playwright result — skip stale/old TCs
+  const zephyrTCs = allZephyrTCs.filter(tc => byKey.has(tc.key));
+  const skipped   = allZephyrTCs.length - zephyrTCs.length;
+  console.log(`  Matched to Playwright results: ${zephyrTCs.length}`);
+  if (skipped) console.log(`  Skipped (no matching spec): ${skipped}`);
+  console.log();
 
   // ── Step 4: Create test cycle ────────────────────────────────────────────
   console.log('──────────────────────────────────────────────────────');
@@ -278,9 +285,9 @@ async function main() {
 
   for (const tc of zephyrTCs) {
     const tcKey  = tc.key;
-    const result = byKey.get(tcKey);
-    const status = result ? result.status : 'Not Executed';
-    const comment = result && result.error
+    const result = byKey.get(tcKey);  // always exists — we pre-filtered
+    const status = result.status;
+    const comment = result.error
       ? `Playwright error: ${result.error}`
       : `Automated run — cycle ${cycle.key}`;
 
@@ -290,12 +297,8 @@ async function main() {
       await updateExecution(execId, status, comment);
       summary[status] = (summary[status] || 0) + 1;
 
-      // Mark as Automated only if Playwright actually ran this TC (Pass or Fail).
-      // TCs with no matching Playwright result (Not Executed) are not yet automated.
-      let autoMarked = null;
-      if (result) {
-        autoMarked = await markAsAutomated(tcKey);
-      }
+      // Mark as Automated in Zephyr
+      let autoMarked = await markAsAutomated(tcKey);
 
       rows.push({ tcKey, name: tc.name, status, synced: true, autoMarked });
     } catch (err) {

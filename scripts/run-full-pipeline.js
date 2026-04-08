@@ -11,11 +11,13 @@
  *   │  Stage 2  Generate detailed Zephyr test cases with steps + test data     │
  *   │  Stage 3  Generate Playwright spec files from Zephyr                    │
  *   │  Stage 4  Execute all specs in headed browser (or headless)             │
+ *   │           + Applitools Eyes visual checks on every test                    │
  *   │           → Sync Pass/Fail to Zephyr test cycle                         │
  *   │  Stage 5  Self-Healing Agent  →  repair failing specs + re-run         │
  *   │  Stage 6  Auto-create Jira bugs for remaining failures (linked to story)│
  *   │  Stage 7  Generate interactive HTML report                              │
- *   └──────────────────────────────────────────────────────────────────────────┘
+ *   │  Stage 8  Generate Allure report (interactive drill-down)               │
+ *   │  Stage 9  Generate Applitools visual test report                        │ *   │  Stage 10 Git Agent — auto-commit + push all changes                    │ *   └──────────────────────────────────────────────────────────────────────────┘
  *
  * ─── Usage ───────────────────────────────────────────────────────────────────
  *   node scripts/run-full-pipeline.js                    ← full journey
@@ -60,7 +62,7 @@ function banner() {
   console.log(row('Agentic QA Platform  —  Full Autonomous Pipeline'));
   console.log(row(''));
   console.log(row('  Jira Story  →  Test Plan  →  Zephyr TCs  →  Specs'));
-  console.log(row('  →  Execute  →  Heal  →  Bugs  →  Report  →  Allure'));
+  console.log(row('  →  Execute + Eyes  →  Heal  →  Bugs  →  Report  →  Allure  →  Eyes Report  →  Git'));
   console.log(row(''));
   console.log(row(`  Story  : ${process.env.ISSUE_KEY || '(set ISSUE_KEY in .env)'}`));
   console.log(row(`  Mode   : ${useHeadless ? 'Headless (CI)' : 'Headed — visible browser'}`));
@@ -114,8 +116,8 @@ const STAGES = [
     softFail: false
   },
   {
-    num: 3, label: `Execute tests [${useHeadless ? 'HEADLESS' : 'HEADED/UI'}] → sync Zephyr`,
-    desc: `Runs all specs in ${useHeadless ? 'headless' : 'headed'} browser. Syncs Pass/Fail to Zephyr test cycle.`,
+    num: 3, label: `Execute tests + Applitools Eyes [${useHeadless ? 'HEADLESS' : 'HEADED/UI'}] → sync Zephyr`,
+    desc: `Runs all specs in ${useHeadless ? 'headless' : 'headed'} browser with Applitools Eyes visual checks. Syncs Pass/Fail to Zephyr test cycle.`,
     script: 'scripts/run-and-sync.js',
     skip: () => false,
     softFail: true,
@@ -153,6 +155,21 @@ const STAGES = [
     script: 'scripts/generate-allure-report.js',
     skip: () => false,
     softFail: true   // non-critical — missing allure-results/ prints a warning and continues
+  },
+  {
+    num: 8, label: 'Generate Applitools visual test report',
+    desc: 'Builds standalone HTML report from Applitools Eyes visual test results',
+    script: 'scripts/generate-applitools-report.js',
+    skip: () => false,
+    softFail: true   // non-critical — skipped if no Applitools results found
+  },
+  {
+    num: 9, label: 'Git Agent — auto-commit + push all changes',
+    desc: 'Stages all modified files (specs, results, reports), commits, and pushes to current branch',
+    script: 'scripts/git-sync.js',
+    skip: () => flags.has('--skip-git'),
+    skipMsg: 'Git sync skipped  (--skip-git)',
+    softFail: true   // non-critical — push failure should not halt pipeline
   }
 ];
 
@@ -215,6 +232,10 @@ async function main() {
   }
   if (fs.existsSync(allurePath)) {
     console.log(`  ${C.purple}📊  Allure Report : allure-report/index.html${C.reset}`);
+  }
+  const applitoolsPath = path.join(ROOT, 'custom-report', 'applitools-report.html');
+  if (fs.existsSync(applitoolsPath)) {
+    console.log(`  ${C.cyan}👁  Applitools    : custom-report/applitools-report.html${C.reset}`);
   }
   console.log();
 

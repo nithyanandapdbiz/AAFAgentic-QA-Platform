@@ -1,3 +1,4 @@
+'use strict';
 /**
  * Reviewer Agent — rule-based dedup and enrichment (no external AI required).
  *

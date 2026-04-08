@@ -1,3 +1,4 @@
+'use strict';
 const axios = require("axios");
 const config = require("../core/config");
 const { zephyrHeaders } = require("../utils/zephyrJwt");
@@ -24,19 +25,26 @@ async function createTestCase(tc) {
   );
   const { id, key } = res.data;
 
-  // Attach steps — use GWT-prefixed descriptions when available
+  // Attach steps — use GWT-prefixed descriptions for Given/When/Then format
   if (tc.steps && tc.steps.length > 0) {
     const gwtSteps = tc.gwt && tc.gwt.length === tc.steps.length ? tc.gwt : null;
     await axios.post(
       `${config.zephyr.baseUrl}/testcases/${key}/teststeps`,
       {
         mode: "OVERWRITE",
-        items: tc.steps.map((s, i) => ({
-          inline: {
-            description: gwtSteps ? gwtSteps[i].description : s,
-            expectedResult: tc.expected || ""
-          }
-        }))
+        items: tc.steps.map((s, i) => {
+          const gwtPrefix = gwtSteps ? `[${gwtSteps[i].keyword}] ` : '';
+          const stepText  = gwtSteps ? gwtSteps[i].text : s;
+          return {
+            inline: {
+              description: `${gwtPrefix}${stepText}`,
+              testData:    (tc.testData && tc.testData[i]) ? JSON.stringify(tc.testData[i]) : '',
+              expectedResult: gwtSteps && gwtSteps[i].keyword === 'Then'
+                ? stepText
+                : (tc.expected || '')
+            }
+          };
+        })
       },
       { headers: zephyrHeaders() }
     );

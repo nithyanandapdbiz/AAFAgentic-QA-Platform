@@ -2,24 +2,22 @@
 /**
  * EmployeeListPage — OrangeHRM PIM → Employee List
  * URL: /web/index.php/pim/viewEmployeeList
+ * Locators: EmployeeListPage.yml
  */
+const path = require('path');
+const { loadLocators } = require('../helpers/locatorLoader');
+const loc = loadLocators(path.join(__dirname, 'EmployeeListPage.yml'));
+
 class EmployeeListPage {
   constructor(page) {
     this.page = page;
 
-    // ── Search form ──────────────────────────────────────────
-    // OrangeHRM uses an autocomplete input for the Employee Name filter.
-    this.searchNameInput = page.locator(
-      '.oxd-autocomplete-text-input input, [placeholder="Type for hints..."]'
-    ).first();
-    this.searchButton = page.locator('button[type="submit"]');
-
-    // ── Results table ────────────────────────────────────────
-    this.tableRows     = page.locator('.oxd-table-body .oxd-table-row');
-    this.noRecordsText = page.locator('.oxd-text:has-text("No Records Found")');
-
-    // ── Pagination info ──────────────────────────────────────
-    this.paginationInfo = page.locator('.orangehrm-bottom-container');
+    // ── Locators (from EmployeeListPage.yml) ─────────────────
+    this.searchNameInput = page.locator(loc.searchNameInput).first();
+    this.searchButton    = page.locator(loc.searchButton);
+    this.tableRows       = page.locator(loc.tableRows);
+    this.noRecordsText   = page.locator(loc.noRecordsText);
+    this.paginationInfo  = page.locator(loc.paginationInfo);
   }
 
   // ── Actions ───────────────────────────────────────────────
@@ -27,7 +25,7 @@ class EmployeeListPage {
   /** Navigate to the Employee List page. */
   async navigate() {
     await this.page.goto('/web/index.php/pim/viewEmployeeList');
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   /**
@@ -39,9 +37,12 @@ class EmployeeListPage {
     await this.navigate();
     await this.searchNameInput.click();
     await this.searchNameInput.type(name, { delay: 80 });
-    await this.page.waitForTimeout(1000); // wait for autocomplete response
+    await this.page.waitForResponse(
+      resp => resp.url().includes('/api/') && resp.status() === 200,
+      { timeout: 5000 }
+    ).catch(() => {}); // fallback if no API call fires
     await this.searchButton.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   /** Returns the number of rows currently visible in the results table. */

@@ -1,3 +1,4 @@
+'use strict';
 const { createExecution, updateExecution } = require("../tools/zephyrExecution.client");
 
 /**
