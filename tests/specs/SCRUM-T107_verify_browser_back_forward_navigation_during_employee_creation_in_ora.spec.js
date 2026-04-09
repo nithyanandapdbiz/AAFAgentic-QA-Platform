@@ -1,5 +1,5 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T90
+// Zephyr Test Case : SCRUM-T107
 // Title            : Verify browser back/forward navigation during Employee Creation in OrangeHRM
 // Priority         : Normal
 // Labels           : edge-case, state-transition, dynamic-generated, browser-navigation, scrum-5
@@ -23,7 +23,7 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T90 | Verify browser back/forward navigation during Employee Creation in OrangeHRM', () => {
+test.describe('SCRUM-T107 | Verify browser back/forward navigation during Employee Creation in OrangeHRM', () => {
 
   test('Verify browser back/forward navigation during Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 

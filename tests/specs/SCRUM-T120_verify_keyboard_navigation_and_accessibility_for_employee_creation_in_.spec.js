@@ -1,5 +1,5 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T103
+// Zephyr Test Case : SCRUM-T120
 // Title            : Verify keyboard navigation and accessibility for Employee Creation in OrangeHRM
 // Priority         : Normal
 // Labels           : usability, use-case, dynamic-generated, accessibility, scrum-5
@@ -22,7 +22,7 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T103 | Verify keyboard navigation and accessibility for Employee Creation in OrangeHRM', () => {
+test.describe('SCRUM-T120 | Verify keyboard navigation and accessibility for Employee Creation in OrangeHRM', () => {
 
   test('Verify keyboard navigation and accessibility for Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 

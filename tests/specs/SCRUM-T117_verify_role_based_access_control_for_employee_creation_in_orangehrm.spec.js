@@ -1,5 +1,5 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T100
+// Zephyr Test Case : SCRUM-T117
 // Title            : Verify role-based access control for Employee Creation in OrangeHRM
 // Priority         : Normal
 // Labels           : security, authorization, rbac, decision-table, scrum-5
@@ -22,7 +22,7 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T100 | Verify role-based access control for Employee Creation in OrangeHRM', () => {
+test.describe('SCRUM-T117 | Verify role-based access control for Employee Creation in OrangeHRM', () => {
 
   test('Verify role-based access control for Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
