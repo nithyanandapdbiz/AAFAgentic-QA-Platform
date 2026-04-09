@@ -1,5 +1,5 @@
 // =============================================================================
-// Zephyr Test Case : SCRUM-T119
+// Zephyr Test Case : SCRUM-T136
 // Title            : Verify UI feedback messages are correct for Employee Creation in OrangeHRM
 // Priority         : Normal
 // Labels           : ui, usability, feedback, use-case, scrum-5
@@ -25,7 +25,7 @@
 const { test, expect }                = require('../fixtures/base.fixture');
 const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
-test.describe('SCRUM-T119 | Verify UI feedback messages are correct for Employee Creation in OrangeHRM', () => {
+test.describe('SCRUM-T136 | Verify UI feedback messages are correct for Employee Creation in OrangeHRM', () => {
 
   test('Verify UI feedback messages are correct for Employee Creation in OrangeHRM', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
 
