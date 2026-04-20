@@ -19,7 +19,7 @@
 // Application   : OrangeHRM — https://opensource-demo.orangehrmlive.com
 // Module        : PIM → Add Employee
 // Credentials   : Admin / admin123
-// Fixtures      : base.fixture.js (POM + Applitools Eyes + ScreenshotHelper)
+// Fixtures      : base.fixture.js (POM + ScreenshotHelper)
 // =============================================================================
 'use strict';
 const { test, expect }                = require('../fixtures/base.fixture');
@@ -27,7 +27,7 @@ const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
 test.describe('SCRUM-T145 | Verify Employee Creation in OrangeHRM rejects invalid input data', () => {
 
-  test('Verify Employee Creation in OrangeHRM rejects invalid input data', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {
+  test('Verify Employee Creation in OrangeHRM rejects invalid input data', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, uniqueSuffix }, testInfo) => {
 
     await sh.step('Log in and open Add Employee form', async () => {
       await loginPage.login(CREDENTIALS.admin.username, CREDENTIALS.admin.password);

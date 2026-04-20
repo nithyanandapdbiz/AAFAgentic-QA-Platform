@@ -14,8 +14,6 @@ playwright-report/
 test-results/
 test-results.json
 test-results-healed.json
-applitools-results.json
-.applitools-results.jsonl
 .auth/
 
 # ── Generated artifacts ───────────────────────────────────────────────────

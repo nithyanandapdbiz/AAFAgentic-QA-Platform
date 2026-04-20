@@ -9,7 +9,7 @@ function generateTest(tc) {
   const content = `'use strict';
 const { test, expect } = require('../fixtures/base.fixture');
 
-test('${tc.title}', async ({ page, loginPage, addEmployeePage, sh, eyes }, testInfo) => {
+test('${tc.title}', async ({ page, loginPage, addEmployeePage, sh }, testInfo) => {
   ${(tc.steps || []).map(s => `// ${s}`).join("\n  ")}
   await page.goto('/');
   expect(true).toBeTruthy();

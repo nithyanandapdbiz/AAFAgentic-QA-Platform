@@ -98,9 +98,9 @@ function detectType(name, labels) {
 // ─── Spec-body generators per test type ──────────────────────────────────────
 //
 //  Each function receives (tc, steps) and returns the BODY that goes inside
-//  the async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => { ... }
-//  test callback.  Fixtures from base.fixture.js provide POM objects, Eyes,
-//  and ScreenshotHelper — no manual construction needed.
+//  the async ({ page, loginPage, addEmployeePage, employeeListPage, sh, uniqueSuffix }, testInfo) => { ... }
+//  test callback.  Fixtures from base.fixture.js provide POM objects and
+//  ScreenshotHelper — no manual construction needed.
 //
 const SPEC_BODIES = {
 
@@ -459,7 +459,7 @@ ${stepComments}
 // Application   : OrangeHRM — https://opensource-demo.orangehrmlive.com
 // Module        : PIM → Add Employee
 // Credentials   : Admin / admin123
-// Fixtures      : base.fixture.js (POM + Applitools Eyes + ScreenshotHelper)
+// Fixtures      : base.fixture.js (POM + ScreenshotHelper)
 // =============================================================================
 'use strict';
 const { test, expect }                = require('../fixtures/base.fixture');
@@ -467,7 +467,7 @@ const { CREDENTIALS, TEST_EMPLOYEE } = require('../data/testData');
 
 test.describe('${key} | ${title}', () => {
 
-  test('${title}', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, eyes, uniqueSuffix }, testInfo) => {${body}
+  test('${title}', async ({ page, loginPage, addEmployeePage, employeeListPage, sh, uniqueSuffix }, testInfo) => {${body}
   });
 
 });

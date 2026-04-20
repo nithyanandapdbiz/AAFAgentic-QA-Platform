@@ -15,35 +15,33 @@
 7. [Test Framework](#7-test-framework)
 8. [Page Object Model (POM)](#8-page-object-model-pom)
 9. [Fixture System](#9-fixture-system)
-10. [Applitools Eyes — Visual Testing](#10-applitools-eyes--visual-testing)
-11. [Self-Healing Agent](#11-self-healing-agent)
-12. [Git Agent](#12-git-agent)
-13. [Reporting](#13-reporting)
-14. [External Integrations](#14-external-integrations)
-15. [REST API & Dashboard](#15-rest-api--dashboard)
-16. [CI/CD — GitHub Actions](#16-cicd--github-actions)
-17. [Configuration Reference](#17-configuration-reference)
-18. [npm Scripts Reference](#18-npm-scripts-reference)
-19. [Quick Start Guide](#19-quick-start-guide)
-20. [Troubleshooting](#20-troubleshooting)
+10. [Self-Healing Agent](#10-self-healing-agent)
+11. [Git Agent](#11-git-agent)
+12. [Reporting](#12-reporting)
+13. [External Integrations](#13-external-integrations)
+14. [REST API & Dashboard](#14-rest-api--dashboard)
+15. [CI/CD — GitHub Actions](#15-cicd--github-actions)
+16. [Configuration Reference](#16-configuration-reference)
+17. [npm Scripts Reference](#17-npm-scripts-reference)
+18. [Quick Start Guide](#18-quick-start-guide)
+19. [Troubleshooting](#19-troubleshooting)
 
 ---
 
 ## 1. Executive Summary
 
-The **Agentic QA Platform** is an enterprise-grade, fully autonomous Quality Assurance system that eliminates manual test creation, execution, and reporting. It reads a Jira user story and — with zero human input — generates test cases using six software testing design techniques, creates them in Zephyr Scale, generates Playwright test scripts with Page Object Model, executes them with Applitools Eyes visual validation, self-heals failing tests, creates Jira bug tickets for remaining failures, generates three types of reports (Custom HTML, Allure, Applitools), and auto-commits + pushes all artifacts to Git.
+The **Agentic QA Platform** is an enterprise-grade, fully autonomous Quality Assurance system that eliminates manual test creation, execution, and reporting. It reads a Jira user story and — with zero human input — generates test cases using six software testing design techniques, creates them in Zephyr Scale, generates Playwright test scripts with Page Object Model, executes them, self-heals failing tests, creates Jira bug tickets for remaining failures, generates two types of reports (Custom HTML, Allure), and auto-commits + pushes all artifacts to Git.
 
 ### Key Capabilities
 
 | Capability | Technology |
 |---|---|
 | Test Framework | Playwright + Page Object Model (POM) |
-| Visual Testing | Applitools Eyes (Classic Runner / Ultrafast Grid) |
 | Test Management | Zephyr Scale (Jira Cloud) — Essential Cloud API v2.8 |
 | Issue Tracking | Jira REST API v3 (Atlassian Cloud) |
 | AI Agents | Rule-based agents (no external LLM dependency) — Planner, QA, Reviewer, Executor, Risk Prioritizer |
 | Self-Healing | Automated failure classification + spec patching + re-verification |
-| Reporting | Custom HTML + Allure + Applitools standalone report |
+| Reporting | Custom HTML + Allure |
 | CI/CD | GitHub Actions (full pipeline on push to `main`) |
 | Version Control | Git Agent — auto-commit + push all pipeline artifacts |
 | Dashboard API | Express.js REST API (port 3000) + React frontend |
@@ -100,8 +98,8 @@ Jira User Story
 │                   EXECUTION ENGINE                           │
 │                                                              │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │  Playwright + Applitools Eyes + ScreenshotHelper     │   │
-│  │  (base.fixture.js — POM + Eyes + Hooks)              │   │
+│  │  Playwright + ScreenshotHelper                     │   │
+│  │  (base.fixture.js — POM + Screenshot + Hooks)        │   │
 │  └──────────────────────────┬───────────────────────────┘   │
 │                              │                               │
 │  ┌──────────────┐    ┌──────┴───────┐    ┌──────────────┐  │
@@ -113,10 +111,10 @@ Jira User Story
                                │
               ┌────────────────┼────────────────┐
               ▼                ▼                 ▼
-      ┌──────────────┐ ┌──────────────┐  ┌──────────────┐
-      │ Custom HTML  │ │ Allure HTML  │  │  Applitools  │
-      │   Report     │ │   Report     │  │   Report     │
-      └──────────────┘ └──────────────┘  └──────────────┘
+      ┌──────────────┐ ┌──────────────┐
+      │ Custom HTML  │ │ Allure HTML  │
+      │   Report     │ │   Report     │
+      └──────────────┘ └──────────────┘
                                │
                                ▼
                       ┌──────────────┐
@@ -139,19 +137,19 @@ Jira User Story
 │  ┌─────────────────────────────────────────────────────────────────────────────┐ │
 │  │                        EXTERNAL SYSTEMS                                     │ │
 │  │                                                                             │ │
-│  │  ┌─────────────┐     ┌─────────────────┐     ┌──────────────────────────┐  │ │
-│  │  │  Jira Cloud │     │  Zephyr Scale   │     │   Applitools Eyes       │  │ │
-│  │  │             │     │  Essential      │     │   (Visual AI Cloud)     │  │ │
-│  │  │ • Stories   │     │  Cloud API v2.8 │     │                         │  │ │
-│  │  │ • Bugs      │     │ • Test Cases    │     │ • Checkpoints           │  │ │
-│  │  │ • Links     │     │ • Test Cycles   │     │ • Dashboard             │  │ │
-│  │  │ • Webhooks  │     │ • Executions    │     │ • Ultrafast Grid        │  │ │
-│  │  └──────┬──────┘     └────────┬────────┘     └────────────┬────────────┘  │ │
-│  │         │                     │                            │               │ │
-│  └─────────┼─────────────────────┼────────────────────────────┼───────────────┘ │
-│            │                     │                            │                  │
-│  ┌─────────┼─────────────────────┼────────────────────────────┼───────────────┐ │
-│  │         ▼                     ▼                            ▼               │ │
+│  │  ┌─────────────┐     ┌─────────────────┐
+│  │  │  Jira Cloud │     │  Zephyr Scale   │
+│  │  │             │     │  Essential      │
+│  │  │ • Stories   │     │  Cloud API v2.8 │
+│  │  │ • Bugs      │     │ • Test Cases    │
+│  │  │ • Links     │     │ • Test Cycles   │
+│  │  │ • Webhooks  │     │ • Executions    │
+│  │  └──────┬──────┘     └────────┬────────┘
+│  │         │                     │
+│  └─────────┼─────────────────────┼────────────────────────────────────────┘ │
+│            │                     │
+│  ┌─────────┼─────────────────────┼────────────────────────────────────────┐ │
+│  │         ▼                     ▼
 │  │  ┌──────────────────────────────────────────────────────────────────────┐  │ │
 │  │  │                       API CLIENT LAYER  (src/tools/)                │  │ │
 │  │  │                                                                     │  │ │
@@ -201,8 +199,8 @@ Jira User Story
 │  │  │                                                                      │  │ │
 │  │  │  ┌────────────┐  ┌────────────────┐  ┌──────────────────────────┐   │  │ │
 │  │  │  │ Playwright │  │ base.fixture.js│  │  tests/specs/            │   │  │ │
-│  │  │  │  Engine    │  │ (POM + Eyes    │  │  SCRUM-T53..T69.spec.js │   │  │ │
-│  │  │  │            │  │  + Screenshot  │  │  (17 auto-generated)    │   │  │ │
+│  │  │  │  Engine    │  │ (POM +         │  │  SCRUM-T53..T69.spec.js │   │  │ │
+│  │  │  │            │  │  Screenshot    │  │  (17 auto-generated)    │   │  │ │
 │  │  │  │            │  │  + Hooks)      │  │                          │   │  │ │
 │  │  │  └────────────┘  └────────────────┘  └──────────────────────────┘   │  │ │
 │  │  │                                                                      │  │ │
@@ -218,20 +216,19 @@ Jira User Story
 │  │  │  run-story-tests.js  │  run-tagged-tests.js  │  run-and-sync.js    │  │ │
 │  │  │  generate-playwright.js │ healer.js │ git-sync.js                  │  │ │
 │  │  │  generate-report.js  │  generate-allure-report.js                  │  │ │
-│  │  │  generate-applitools-report.js  │  create-jira-bugs.js             │  │ │
-│  │  │  validate-integration.js                                            │  │ │
+│  │  │  create-jira-bugs.js  │  validate-integration.js                   │  │ │
 │  │  └──────────────────────────────────────────────────────────────────────┘  │ │
 │  │                                                                           │ │
 │  │  ┌──────────────────────────────────────────────────────────────────────┐  │ │
 │  │  │                    REPORTING LAYER                                   │  │ │
 │  │  │                                                                      │  │ │
-│  │  │  ┌──────────────┐  ┌──────────────┐  ┌───────────────────────────┐  │  │ │
-│  │  │  │ Custom HTML  │  │ Allure HTML  │  │ Applitools HTML Report   │  │  │ │
-│  │  │  │ (pie chart,  │  │ (drill-down  │  │ (visual diff, dashboard  │  │  │ │
-│  │  │  │  screenshots,│  │  interactive │  │  links, per-test status) │  │  │ │
-│  │  │  │  video,      │  │  HTML)       │  │                          │  │  │ │
-│  │  │  │  step tables)│  │              │  │                          │  │  │ │
-│  │  │  └──────────────┘  └──────────────┘  └───────────────────────────┘  │  │ │
+│  │  │  ┌──────────────┐  ┌──────────────┐  │  │ │
+│  │  │  │ Custom HTML  │  │ Allure HTML  │  │  │ │
+│  │  │  │ (pie chart,  │  │ (drill-down  │  │  │ │
+│  │  │  │  screenshots,│  │  interactive │  │  │ │
+│  │  │  │  video,      │  │  HTML)       │  │  │ │
+│  │  │  │  step tables)│  │              │  │  │ │
+│  │  │  └──────────────┘  └──────────────┘  │  │ │
 │  │  └──────────────────────────────────────────────────────────────────────┘  │ │
 │  │                                                                           │ │
 │  │  ┌──────────────────────────────────────────────────────────────────────┐  │ │
@@ -256,7 +253,7 @@ Jira User Story
 
 ```
     ┌─────────────┐
-    │  .env file  │ ◄── JIRA_URL, ZEPHYR_ACCESS_KEY, APPLITOOLS_API_KEY, ISSUE_KEY
+    │  .env file  │ ◄── JIRA_URL, ZEPHYR_ACCESS_KEY, ISSUE_KEY
     └──────┬──────┘
            │
            ▼
@@ -309,7 +306,6 @@ Jira User Story
     │                                                           │
     │  base.fixture.js provides per-test:                       │
     │   • loginPage, addEmployeePage, employeeListPage (POM)    │
-    │   • eyes (Applitools EyesHelper — auto open/close)        │
     │   • sh (ScreenshotHelper — auto step screenshots)         │
     │   • uniqueSuffix, _consoleErrors                          │
     │                                                           │
@@ -321,18 +317,18 @@ Jira User Story
     └──────────┬────────────────────┬───────────────────────────┘
                │                    │
                ▼                    ▼
-    ┌──────────────┐     ┌──────────────────┐
-    │ test-results │     │  Applitools      │
-    │   .json      │     │  Eyes Cloud      │
-    │ (Playwright  │     │  (visual checks) │
-    │  JSON report)│     └──────────────────┘
+    ┌──────────────┐
+    │ test-results │
+    │   .json      │
+    │ (Playwright  │
+    │  JSON report)│
     └──────┬───────┘
            │
      ┌─────┼──────────┬───────────────┬─────────────────┐
      │     │          │               │                  │
      ▼     ▼          ▼               ▼                  ▼
   ┌──────┐ ┌──────┐ ┌────────┐ ┌───────────┐ ┌──────────────────┐
-  │Healer│ │Zephyr│ │Jira Bug│ │  3 Report │ │   Git Agent      │
+  │Healer│ │Zephyr│ │Jira Bug│ │  2 Report │ │   Git Agent      │
   │(patch│ │ Sync │ │Creator │ │ Generators│ │  (commit + push)  │
   │+rerun│ │      │ │        │ │           │ │                   │
   │)     │ │      │ │        │ │           │ │                   │
@@ -395,16 +391,14 @@ agentic-qa-platform-full/
 │
 ├── tests/                            # Playwright test framework
 │   ├── global-setup.js               #   AUT health-check + auth cache + cleanup stale data
-│   ├── global-teardown.js            #   Suite summary + Applitools aggregation
+│   ├── global-teardown.js            #   Suite summary
 │   │
 │   ├── fixtures/                     #   Composed Playwright fixtures
-│   │   ├── base.fixture.js           #     ★ Master fixture (POM + Eyes + Screenshot + Hooks)
-│   │   ├── pom.fixture.js            #     Lightweight POM-only fixture
-│   │   └── eyes.fixture.js           #     Applitools-only fixture
+│   │   ├── base.fixture.js           #     ★ Master fixture (POM + Screenshot + Hooks)
+│   │   └── pom.fixture.js            #     Lightweight POM-only fixture
 │   │
 │   ├── helpers/                      #   Test helpers
-│   │   ├── eyes.helper.js            #     EyesHelper class (open/check/checkElement/close/abort)
-│   │   └── screenshot.helper.js      #     ScreenshotHelper class (step screenshots + Eyes)
+│   │   └── screenshot.helper.js      #     ScreenshotHelper class (step screenshots)
 │   │
 │   ├── pages/                        #   Page Object Model
 │   │   ├── LoginPage.js              #     goto(), login(), getErrorMessage()
@@ -421,16 +415,15 @@ agentic-qa-platform-full/
 │       └── ... (17 total: SCRUM-T53 through SCRUM-T69)
 │
 ├── scripts/                          # CLI pipeline scripts
-│   ├── qa-run.js                     #   ★ Main 9-stage pipeline (zero-prompt)
-│   ├── run-full-pipeline.js          #   ★ Full autonomous 9-stage journey
+│   ├── qa-run.js                     #   ★ Main 8-stage pipeline (zero-prompt)
+│   ├── run-full-pipeline.js          #   ★ Full autonomous 8-stage journey
 │   ├── run-story.js                  #     Fetch story → create Zephyr TCs (7 steps)
-│   ├── run-story-tests.js            #     Story-specific execution (7 stages)
-│   ├── run-tagged-tests.js           #     Tag-filtered execution (6 stages)
+│   ├── run-story-tests.js            #     Story-specific execution (6 stages)
+│   ├── run-tagged-tests.js           #     Tag-filtered execution (5 stages)
 │   ├── run-and-sync.js               #     Run Playwright + sync Zephyr (6 steps)
 │   ├── generate-playwright.js        #     Zephyr TCs → .spec.js files (12 templates)
 │   ├── generate-report.js            #     Custom HTML report generator
 │   ├── generate-allure-report.js     #     Allure HTML report generator
-│   ├── generate-applitools-report.js #     Applitools HTML report generator
 │   ├── create-jira-bugs.js           #     Auto-create Jira bugs + link to story
 │   ├── healer.js                     #     Self-healing agent (classify + patch + re-run)
 │   ├── git-sync.js                   #     Git agent (add + commit + push)
@@ -442,7 +435,6 @@ agentic-qa-platform-full/
 │
 ├── .github/workflows/qa.yml         # GitHub Actions CI pipeline
 ├── playwright.config.js              # Playwright config (90s timeout, 1 retry, 4 reporters)
-├── applitools.config.js              # Applitools Eyes config (Strict match, 1280x720)
 ├── .env.example                      # Environment variable template
 ├── .eslintrc.json                    # ESLint rules
 ├── .gitignore                        # Git ignore rules
@@ -560,20 +552,20 @@ runAgentFlow(issueKey)
 
 ## 6. Pipeline Scripts
 
-### 6.1 Main Pipeline: `qa-run.js` (9 Stages)
+### 6.1 Main Pipeline: `qa-run.js` (8 Stages)
 
-The primary single-command pipeline. Runs all 9 stages sequentially with zero human input.
+The primary single-command pipeline. Runs all 8 stages sequentially with zero human input.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  qa-run.js — Single-Command End-to-End Pipeline (9 stages)         │
+│  qa-run.js — Single-Command End-to-End Pipeline (8 stages)         │
 │                                                                     │
 │  Stage 1  Fetch Jira story → create detailed Zephyr test cases      │
 │           (BVA, EP, DT, ST, EG, UC + concrete test data)            │
 │                                                                     │
 │  Stage 2  Generate Playwright spec files from Zephyr                │
 │                                                                     │
-│  Stage 3  Run Playwright tests + Applitools Eyes                    │
+│  Stage 3  Run Playwright tests                                      │
 │           → Sync Pass/Fail results to Zephyr                        │
 │                                                                     │
 │  Stage 4  Self-Healing Agent → repair & re-run failing tests        │
@@ -584,9 +576,7 @@ The primary single-command pipeline. Runs all 9 stages sequentially with zero hu
 │                                                                     │
 │  Stage 7  Generate Allure report (interactive drill-down)           │
 │                                                                     │
-│  Stage 8  Generate Applitools visual test report                    │
-│                                                                     │
-│  Stage 9  Git Agent — auto-commit + push all changes                │
+│  Stage 8  Git Agent — auto-commit + push all changes                │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -596,44 +586,42 @@ The primary single-command pipeline. Runs all 9 stages sequentially with zero hu
 |---|---|
 | `--skip-story` | Skip stage 1 (use existing Zephyr TCs) |
 | `--skip-generate` | Skip stages 1+2 |
-| `--run-only` | Stages 3–9 only |
+| `--run-only` | Stages 3–8 only |
 | `--force` | Force-recreate Zephyr test cases |
 | `--skip-heal` | Skip stage 4 (healer) |
 | `--skip-bugs` | Skip stage 5 (bug creation) |
-| `--skip-git` | Skip stage 9 (git push) |
+| `--skip-git` | Skip stage 8 (git push) |
 | `--headless` | Run browser in headless CI mode |
 
-### 6.2 Full Pipeline: `run-full-pipeline.js` (9 Stages)
+### 6.2 Full Pipeline: `run-full-pipeline.js` (8 Stages)
 
-Same 9 stages as `qa-run.js` but with different presentation (purple-themed banner, journey-style output). Used as the `npm start` command.
+Same 8 stages as `qa-run.js` but with different presentation (purple-themed banner, journey-style output). Used as the `npm start` command.
 
-### 6.3 Story Test Runner: `run-story-tests.js` (7 Stages)
+### 6.3 Story Test Runner: `run-story-tests.js` (6 Stages)
 
 Runs only spec files belonging to a specific Jira story. Resolves specs via `.story-testcases.json` handoff file or Zephyr label search.
 
 | Stage | Description |
 |---|---|
 | 0 (optional) | Re-generate spec files (`--regen-specs`) |
-| 1 | Execute story specs + Applitools Eyes → sync Zephyr |
+| 1 | Execute story specs → sync Zephyr |
 | 2 | Self-Healing Agent |
 | 3 | Auto-create Jira bugs |
 | 4 | Generate HTML report |
 | 5 | Generate Allure report |
-| 6 | Generate Applitools report |
-| 7 | Git Agent → commit + push |
+| 6 | Git Agent → commit + push |
 
-### 6.4 Tagged Test Runner: `run-tagged-tests.js` (6 Stages)
+### 6.4 Tagged Test Runner: `run-tagged-tests.js` (5 Stages)
 
 Runs tests filtered by tag/annotation pattern with a rich alias system.
 
 | Stage | Description |
 |---|---|
-| 1 | Run filtered tests + Applitools Eyes |
+| 1 | Run filtered tests |
 | 2 | Self-Healing Agent |
 | 3 | Generate HTML report |
 | 4 | Generate Allure report |
-| 5 | Generate Applitools report |
-| 6 | Git Agent → commit + push |
+| 5 | Git Agent → commit + push |
 
 **Built-in Tag Aliases:**
 
@@ -666,7 +654,6 @@ Runs tests filtered by tag/annotation pattern with a rich alias system.
 | `git-sync.js` | Git agent — `git add -A` → commit → push |
 | `generate-report.js` | Custom HTML report with pie chart, screenshots, video |
 | `generate-allure-report.js` | Allure CLI: `allure generate allure-results/ -o allure-report/` |
-| `generate-applitools-report.js` | Standalone Applitools HTML report |
 | `create-jira-bugs.js` | Create Jira bugs for failures + link to parent story |
 | `validate-integration.js` | Test Jira + Zephyr API connectivity |
 
@@ -702,7 +689,7 @@ Runs tests filtered by tag/annotation pattern with a rich alias system.
 ### 7.3 Global Setup (`tests/global-setup.js`)
 
 Runs once before the entire test suite:
-1. **Cleanup** — Deletes stale `.applitools-results.jsonl` and wipes `allure-results/`
+1. **Cleanup** — Wipes `allure-results/`
 2. **Health Check** — Launches headless Chromium, navigates to OrangeHRM login page, asserts HTTP 200 and that `input[name="username"]` renders. **Fails fast** if the application under test is unreachable
 3. **Auth Cache** — Logs in as Admin, saves `storageState` to `.auth/storage-state.json`
 4. **Logging** — Prints base URL, worker count, retries, and timestamp
@@ -712,7 +699,6 @@ Runs once before the entire test suite:
 Runs once after the entire test suite:
 1. **Result Parsing** — Walks `test-results.json` suite tree counting passed/failed/skipped/flaky
 2. **Summary Table** — Prints total, pass/fail/skip/flaky counts, duration, and pass rate
-3. **Applitools Aggregation** — Reads `.applitools-results.jsonl` and aggregates visual pass/fail/unresolved counts
 
 ---
 
@@ -752,7 +738,7 @@ All page objects follow a consistent pattern with YAML-based locator files.
 
 ## 9. Fixture System
 
-The platform uses Playwright's **composed fixture** pattern with three tiers:
+The platform uses Playwright's **composed fixture** pattern with two tiers:
 
 ### 9.1 Master Fixture: `base.fixture.js` ★
 
@@ -764,8 +750,7 @@ Used by all auto-generated spec files. Provides everything needed for test execu
 | `addEmployeePage` | POM | `AddEmployeePage` instance bound to the page |
 | `employeeListPage` | POM | `EmployeeListPage` instance bound to the page |
 | `uniqueSuffix` | Data | 5-digit timestamp string for unique test data |
-| `eyes` | Visual | `EyesHelper` with auto `open()`/`close()`/`abort()` lifecycle |
-| `sh` | Screenshot | `ScreenshotHelper` with auto step screenshots + Eyes integration |
+| `sh` | Screenshot | `ScreenshotHelper` with auto step screenshots |
 | `_consoleErrors` | Diagnostics | Collects `console.error` messages, attaches on failure |
 
 **Automatic Lifecycle Hooks:**
@@ -779,56 +764,20 @@ Used by all auto-generated spec files. Provides everything needed for test execu
 
 ### 9.2 POM-Only Fixture: `pom.fixture.js`
 
-Lightweight alternative when Eyes/screenshots are not needed. Provides only POM fixtures + `uniqueSuffix`.
+Lightweight alternative when screenshots are not needed. Provides only POM fixtures + `uniqueSuffix`.
 
-### 9.3 Eyes-Only Fixture: `eyes.fixture.js`
-
-Provides only the `eyes` fixture with auto open/close lifecycle. For tests that need visual testing without POM.
-
----
-
-## 10. Applitools Eyes — Visual Testing
-
-### 10.1 EyesHelper (`tests/helpers/eyes.helper.js`)
-
-Wrapper around `@applitools/eyes-playwright` with retry, lifecycle management, and result tracking.
+### 9.3 ScreenshotHelper (`tests/helpers/screenshot.helper.js`)
 
 | Method | Purpose |
 |---|---|
-| `open(page, testName)` | Opens Eyes session with config from `applitools.config.js` |
-| `check(tag)` | Full-page visual checkpoint |
-| `checkElement(locator, tag)` | Element-level visual checkpoint |
-| `checkIgnoring(tag, selectors[])` | Full-page checkpoint ignoring dynamic regions |
-| `checkLayout(tag)` | Layout-only checkpoint (ignores text/color changes) |
-| `close()` | Closes session, returns dashboard URL |
-| `abort()` | Safely aborts session via `abortIfNotClosed()` |
-| `static getRunnerResults()` | Collects all results from the shared runner |
-
-### 10.2 Configuration (`applitools.config.js`)
-
-| Setting | Value |
-|---|---|
-| App Name | `OrangeHRM` |
-| Batch Name | `OrangeHRM QA Suite` |
-| Server | `https://eyesapi.applitools.com` |
-| Match Level | `Strict` (configurable: Strict/Content/Layout/Exact) |
-| Viewport | `1280 × 720` |
-| Ultrafast Grid | Disabled by default (`USE_ULTRAFAST_GRID=true` to enable) |
-| UFG Browsers | Chrome, Firefox, Safari, Edge, iPhone 14, Pixel 7 |
-| Checkpoint Retries | 2 |
-
-### 10.3 ScreenshotHelper (`tests/helpers/screenshot.helper.js`)
-
-| Method | Purpose |
-|---|---|
-| `step(label, fn)` | Wraps function in `test.step()`, captures screenshot after, fires `eyes.check()` |
-| `capture(label)` | Standalone screenshot + optional Eyes checkpoint |
+| `step(label, fn)` | Wraps function in `test.step()`, captures screenshot after completion |
+| `capture(label)` | Standalone screenshot capture |
 
 Screenshots are saved as `step-01-label.png`, `step-02-label.png`, etc. in `test-results/screenshots/<test-slug>/` and embedded in the custom HTML report.
 
 ---
 
-## 11. Self-Healing Agent
+## 10. Self-Healing Agent
 
 **Script:** `scripts/healer.js`
 
@@ -865,7 +814,7 @@ Stage 4  Summary — save test-results-healed.json
 
 ---
 
-## 12. Git Agent
+## 11. Git Agent
 
 **Script:** `scripts/git-sync.js`
 
@@ -892,11 +841,11 @@ Automatically stages, commits, and pushes all pipeline artifacts to the current 
 
 ---
 
-## 13. Reporting
+## 12. Reporting
 
-The platform generates **three independent reports** after every pipeline run.
+The platform generates **two independent reports** after every pipeline run.
 
-### 13.1 Custom HTML Report
+### 12.1 Custom HTML Report
 
 **Script:** `scripts/generate-report.js`  
 **Output:** `custom-report/index.html`
@@ -909,31 +858,20 @@ Features:
 - Playwright-captured failure screenshots embedded as base64
 - Video recordings embedded as `<video>` elements (WebM)
 - Step screenshots from ScreenshotHelper inline in step table
-- Links to Allure report and Applitools dashboard
+- Link to Allure report
 
-### 13.2 Allure Report
+### 12.2 Allure Report
 
 **Script:** `scripts/generate-allure-report.js`  
 **Output:** `allure-report/index.html`
 
 Uses `allure-commandline` to generate an interactive Allure HTML report from `allure-results/` directory. Features drill-down views, timeline, severity breakdown, and test history.
 
-### 13.3 Applitools Visual Test Report
-
-**Script:** `scripts/generate-applitools-report.js`  
-**Output:** `custom-report/applitools-report.html`
-
-Standalone HTML report merging data from:
-- `applitools-results.json` (runner data with dashboard URLs)
-- `test-results.json` (Playwright attachment metadata)
-
-Features summary cards, per-test visual status table, Playwright↔Applitools mapping, and configuration summary.
-
 ---
 
-## 14. External Integrations
+## 13. External Integrations
 
-### 14.1 Jira (Atlassian Cloud)
+### 13.1 Jira (Atlassian Cloud)
 
 | Operation | API | Client File |
 |---|---|---|
@@ -942,7 +880,7 @@ Features summary cards, per-test visual status table, Playwright↔Applitools ma
 | Link bug to story | `POST /rest/api/3/issueLink` | `jiraBug.client.js` |
 | Attach screenshots | `POST /rest/api/3/issue/{key}/attachments` | `create-jira-bugs.js` |
 
-### 14.2 Zephyr Scale (Essential Cloud API v2.8)
+### 13.2 Zephyr Scale (Essential Cloud API v2.8)
 
 | Operation | API | Client File |
 |---|---|---|
@@ -963,28 +901,18 @@ Features summary cards, per-test visual status table, Playwright↔Applitools ma
 | `timedOut` | `Blocked` |
 | `skipped` | `Not Executed` |
 
-### 14.3 Applitools Eyes
-
-| Feature | Detail |
-|---|---|
-| SDK | `@applitools/eyes-playwright` ^1.46.3 |
-| Runner | ClassicRunner (default) or VisualGridRunner (UFG) |
-| Checkpoints | Full-page, element-level, ignore-region, layout-only |
-| Lifecycle | Auto open/close via `base.fixture.js` — no manual setup needed |
-| Results | Written to `.applitools-results.jsonl` per test, aggregated in `global-teardown.js` |
-
 ---
 
-## 15. REST API & Dashboard
+## 14. REST API & Dashboard
 
-### 15.1 Express Server (`src/main.js`)
+### 14.1 Express Server (`src/main.js`)
 
 Starts on port 3000 (configurable via `PORT` env var).
 
 **Startup Validation:**
 - Requires `JIRA_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` — exits with error if missing
 
-### 15.2 API Endpoints
+### 14.2 API Endpoints
 
 | Method | Path | Description | Authentication |
 |---|---|---|---|
@@ -997,7 +925,7 @@ Starts on port 3000 (configurable via `PORT` env var).
 | `GET` | `/api/screenshots/:testId` | Screenshots for a specific test | Optional |
 | `GET` | `/api/screenshots/:testId/:filename` | Serve individual screenshot file | Optional |
 
-### 15.3 Webhook Integration
+### 14.3 Webhook Integration
 
 The platform can auto-trigger the full pipeline when:
 - A Jira issue is **created** or **updated** with a status in `WEBHOOK_TRIGGER_STATUSES`
@@ -1008,13 +936,13 @@ The platform can auto-trigger the full pipeline when:
 - 5-minute cooldown per issue (prevents duplicate triggers)
 - Bearer token authentication on manual trigger endpoint
 
-### 15.4 React Dashboard (`dashboard/`)
+### 14.4 React Dashboard (`dashboard/`)
 
 Minimal React 18 app showing `Total`, `Passed`, `Failed` counts from `/api/dashboard`.
 
 ---
 
-## 16. CI/CD — GitHub Actions
+## 15. CI/CD — GitHub Actions
 
 **Workflow file:** `.github/workflows/qa.yml`
 
@@ -1038,16 +966,14 @@ Minimal React 18 app showing `Total`, `Passed`, `Failed` counts from `/api/dashb
 **Environment Variables (from GitHub Secrets):**
 - `JIRA_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`
 - `ZEPHYR_BASE_URL`, `ZEPHYR_ACCESS_KEY`
-- `APPLITOOLS_API_KEY`
 - `ISSUE_KEY`, `PROJECT_KEY`
-- `USE_ULTRAFAST_GRID=true`, `PW_HEADLESS=true`
-- `APPLITOOLS_BATCH_ID=github.run_id` (for CI batch tracking)
+- `PW_HEADLESS=true`
 
 ---
 
-## 17. Configuration Reference
+## 16. Configuration Reference
 
-### 17.1 Environment Variables (`.env`)
+### 16.1 Environment Variables (`.env`)
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
@@ -1058,11 +984,6 @@ Minimal React 18 app showing `Total`, `Passed`, `Failed` counts from `/api/dashb
 | `ISSUE_KEY` | ✅ | — | Target Jira story key (e.g. `SCRUM-6`) |
 | `ZEPHYR_BASE_URL` | ✅ | `https://prod-api.zephyr4jiracloud.com/v2` | Zephyr Essential API base |
 | `ZEPHYR_ACCESS_KEY` | ✅ | — | Zephyr API access key |
-| `APPLITOOLS_API_KEY` | Optional | — | Applitools Eyes API key (Eyes disabled if absent) |
-| `APPLITOOLS_APP_NAME` | Optional | `OrangeHRM` | Applitools app name |
-| `APPLITOOLS_BATCH_NAME` | Optional | `OrangeHRM QA Suite` | Applitools batch name |
-| `APPLITOOLS_MATCH_LEVEL` | Optional | `Strict` | Match level: Strict/Content/Layout/Exact |
-| `USE_ULTRAFAST_GRID` | Optional | `false` | Enable UFG cross-browser rendering |
 | `PW_HEADLESS` | Optional | `false` | Run Playwright in headless mode |
 | `PORT` | Optional | `3000` | Express server port |
 | `JIRA_BUG_ISSUETYPE` | Optional | `Bug` | Issue type for auto-created bugs |
@@ -1073,19 +994,18 @@ Minimal React 18 app showing `Total`, `Passed`, `Failed` counts from `/api/dashb
 
 ---
 
-## 18. npm Scripts Reference
+## 17. npm Scripts Reference
 
 | Script | Command | Description |
 |---|---|---|
-| `npm start` | `node scripts/run-full-pipeline.js` | Full 9-stage autonomous pipeline |
+| `npm start` | `node scripts/run-full-pipeline.js` | Full 8-stage autonomous pipeline |
 | `npm test` | `npx playwright test` | Run all Playwright tests |
-| `npm run qa` | `node scripts/qa-run.js` | Full 9-stage pipeline |
+| `npm run qa` | `node scripts/qa-run.js` | Full 8-stage pipeline |
 | `npm run qa:run` | `node scripts/qa-run.js --run-only` | Execute + report only (skip gen) |
 | `npm run qa:generate` | `node scripts/qa-run.js --skip-story` | Generate specs only (skip fetch) |
 | `npm run qa:full` | `node scripts/qa-run.js` | Full pipeline (alias) |
 | `npm run report` | `node scripts/generate-report.js` | Generate custom HTML report |
 | `npm run report:allure` | `node scripts/generate-allure-report.js` | Generate Allure report |
-| `npm run report:applitools` | `node scripts/generate-applitools-report.js` | Generate Applitools report |
 | `npm run allure:open` | `npx allure open allure-report` | Open Allure report in browser |
 | `npm run start:server` | `node src/main.js` | Start Express API server |
 
@@ -1115,7 +1035,7 @@ node scripts/healer.js --skip-run
 
 ---
 
-## 19. Quick Start Guide
+## 18. Quick Start Guide
 
 ### Prerequisites
 
@@ -1138,7 +1058,6 @@ cp .env.example .env
 #   JIRA_URL, JIRA_EMAIL, JIRA_API_TOKEN
 #   PROJECT_KEY, ISSUE_KEY
 #   ZEPHYR_BASE_URL, ZEPHYR_ACCESS_KEY
-#   APPLITOOLS_API_KEY (optional)
 ```
 
 ### Step 3: Validate Connectivity
@@ -1170,12 +1089,11 @@ After the pipeline completes, open these reports:
 |---|---|---|
 | Custom HTML | `custom-report/index.html` | Open in browser |
 | Allure | `allure-report/index.html` | `npm run allure:open` |
-| Applitools | `custom-report/applitools-report.html` | Open in browser |
 | Playwright | `playwright-report/index.html` | `npx playwright show-report` |
 
 ---
 
-## 20. Troubleshooting
+## 19. Troubleshooting
 
 ### Common Issues
 
@@ -1184,7 +1102,6 @@ After the pipeline completes, open these reports:
 | `ZEPHYR_ACCESS_KEY not set` | Missing env var | Add `ZEPHYR_ACCESS_KEY` to `.env` |
 | `Global setup failed: AUT unreachable` | OrangeHRM demo site is down | Wait and retry; the demo site has intermittent downtime |
 | `Blank Allure report` | Stale `allure-results/` from previous runs | `global-setup.js` auto-cleans this; or manually delete `allure-results/` |
-| `Applitools Eyes disabled` | Missing `APPLITOOLS_API_KEY` | Add key to `.env`; Eyes auto-enables when key is present |
 | `Strict mode violation` | Multiple elements match a locator | Healer auto-fixes with `.first()`; or update POM locators |
 | `Push failed in Git Agent` | No remote configured or auth issue | Non-fatal; commit is saved locally. Push manually with `git push` |
 | `Test timeout (90s)` | AUT slow / network latency | Healer auto-extends timeouts; or increase in `playwright.config.js` |
@@ -1216,13 +1133,13 @@ node scripts/run-tagged-tests.js --tag smoke --list-only
 │                                                             │            │
 │                                                             ▼            │
 │                    ┌────────────────────────────────────────────────┐     │
-│                    │  EXECUTION + APPLITOOLS EYES VISUAL CHECKS    │     │
+│                    │              TEST EXECUTION                    │     │
 │                    └──────────┬─────────────────────────────────────┘     │
 │                               │                                          │
 │                    ┌──────────┼──────────┐                               │
 │                    ▼          ▼          ▼                                │
 │              ┌──────────┐ ┌──────┐ ┌──────────┐                          │
-│              │ SELF-HEAL│ │ BUGS │ │ 3 REPORTS│                          │
+│              │ SELF-HEAL│ │ BUGS │ │ 2 REPORTS│                          │
 │              └──────────┘ └──────┘ └──────────┘                          │
 │                                         │                                │
 │                                         ▼                                │

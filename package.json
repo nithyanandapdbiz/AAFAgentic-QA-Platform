@@ -12,7 +12,6 @@
     "qa:full": "node scripts/qa-run.js",
     "report": "node scripts/generate-report.js",
     "report:allure": "node scripts/generate-allure-report.js",
-    "report:applitools": "node scripts/generate-applitools-report.js",
     "allure:open": "npx allure open allure-report"
   },
   "dependencies": {
@@ -23,7 +22,6 @@
     "winston": "^3.10.0"
   },
   "devDependencies": {
-    "@applitools/eyes-playwright": "^1.46.3",
     "@playwright/test": "^1.40.0",
     "allure-commandline": "^2.38.1",
     "allure-playwright": "3.6.0"

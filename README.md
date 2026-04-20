@@ -6,12 +6,11 @@ End-to-end AI-powered QA automation: **Jira Story → Test Generation → Zephyr
 
 ## Overview
 
-An enterprise-grade QA platform that uses rule-based AI agents to automate the full test lifecycle — from Jira user stories to Playwright spec generation, execution, self-healing, visual regression testing, and Jira bug creation.
+An enterprise-grade QA platform that uses rule-based AI agents to automate the full test lifecycle — from Jira user stories to Playwright spec generation, execution, self-healing, and Jira bug creation.
 
 | Capability | Technology |
 |------------|-----------|
 | Test Framework | Playwright + Page Object Model |
-| Visual Testing | Applitools Eyes (Ultrafast Grid) |
 | Test Management | Zephyr Scale (Jira Cloud) |
 | Issue Tracking | Jira REST API |
 | AI Agents | Rule-based (Planner, QA, Reviewer, Executor, Risk Prioritizer) |
@@ -40,8 +39,8 @@ agentic-qa-platform-full/
 │   ├── global-setup.js            #   Auth + browser warmup
 │   ├── global-teardown.js         #   Cleanup
 │   ├── data/                      #   Test data + credentials
-│   ├── fixtures/                  #   Composed Playwright fixtures (POM + Eyes + hooks)
-│   ├── helpers/                   #   Helpers (Applitools Eyes, screenshots, locator loader)
+│   ├── fixtures/                  #   Composed Playwright fixtures (POM + hooks)
+│   ├── helpers/                   #   Helpers (screenshots, locator loader)
 │   ├── pages/                     #   Page Object Model (.js class + .yml locators)
 │   └── specs/                     #   Auto-generated test specs (SCRUM-T*.spec.js)
 │
@@ -50,7 +49,6 @@ agentic-qa-platform-full/
 │
 ├── .github/workflows/qa.yml      #  GitHub Actions CI pipeline
 ├── playwright.config.js           #  Playwright configuration
-├── applitools.config.js           #  Applitools Eyes configuration
 ├── .eslintrc.json                 #  ESLint rules
 ├── .env.example                   #  Environment variable template
 └── package.json                   #  Dependencies + npm scripts
@@ -78,7 +76,7 @@ npx playwright install --with-deps chromium
 
 ```bash
 cp .env.example .env
-# Edit .env with your Jira, Zephyr Scale, and Applitools credentials
+# Edit .env with your Jira and Zephyr Scale credentials
 ```
 
 ### Running Tests
@@ -131,7 +129,7 @@ GitHub Actions workflow (`.github/workflows/qa.yml`) runs on push to `main` and 
 3. Upload Playwright report as artifact
 4. Commit generated specs back to repo
 
-Required secrets: `JIRA_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `ZEPHYR_BASE_URL`, `ZEPHYR_ACCESS_KEY`, `APPLITOOLS_API_KEY`, `ISSUE_KEY`, `PROJECT_KEY`
+Required secrets: `JIRA_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `ZEPHYR_BASE_URL`, `ZEPHYR_ACCESS_KEY`, `ISSUE_KEY`, `PROJECT_KEY`
 
 ---
 

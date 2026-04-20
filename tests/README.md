@@ -1,6 +1,6 @@
 # Tests
 
-Playwright test framework using Page Object Model (POM) with Applitools Eyes visual testing.
+Playwright test framework using Page Object Model (POM) with ScreenshotHelper.
 
 ## Structure
 
@@ -11,9 +11,8 @@ tests/
 ├── data/
 │   └── testData.js            # Centralized test data, credentials, routes
 ├── fixtures/
-│   └── base.fixture.js        # Composed fixture: POM + Eyes + ScreenshotHelper + hooks
+│   └── base.fixture.js        # Composed fixture: POM + ScreenshotHelper + hooks
 ├── helpers/
-│   ├── eyes.helper.js         # Applitools EyesHelper (VisualGridRunner, check methods)
 │   ├── screenshot.helper.js   # Step-based screenshot capture with Allure integration
 │   └── locatorLoader.js       # YAML locator file parser for page objects
 ├── pages/                     # Page Object Model classes
@@ -31,9 +30,8 @@ tests/
 
 - **Page Object Model**: Each page has a `.js` class + `.yml` locator file
 - **YAML Locators**: Selectors are externalized in YAML files, loaded by `locatorLoader.js`
-- **Composed Fixtures**: `base.fixture.js` merges POM instances, Applitools Eyes, and ScreenshotHelper into a single import
+- **Composed Fixtures**: `base.fixture.js` merges POM instances and ScreenshotHelper into a single import
 - **Hook Lifecycle**: beforeEach (cookie clear), afterEach (failure screenshot + console errors), beforeAll/afterAll (suite logging)
-- **Visual Testing**: Applitools Eyes auto-opens/closes per test via the `eyes` fixture; no-op when `APPLITOOLS_API_KEY` is unset
 
 ## Running Tests
 

@@ -12,14 +12,13 @@
  *   │  Pre     Resolve story test cases  (Zephyr → spec file paths)           │
  *   │          Uses .story-testcases.json if present, otherwise fetches all   │
  *   │          TCs for ISSUE_KEY from Zephyr and finds matching spec files    │
- *   │  Stage 1  Execute story specs + Applitools Eyes visual checks           │
+ *   │  Stage 1  Execute story specs                                           │
  *   │            →  Sync Pass/Fail to Zephyr                                  │
  *   │  Stage 2  Self-Healing Agent  →  repair + re-run failing specs          │
  *   │  Stage 3  Auto-create Jira bugs for remaining failures                  │
  *   │  Stage 4  Generate interactive HTML report                              │
  *   │  Stage 5  Generate Allure report (interactive drill-down)               │
- *   │  Stage 6  Generate Applitools visual test report                        │
- *   │  Stage 7  Git Agent — auto-commit + push all changes                   │
+ *   │  Stage 6  Git Agent — auto-commit + push all changes                   │
  *   └──────────────────────────────────────────────────────────────────────────┘
  *
  * ─── Usage ───────────────────────────────────────────────────────────────────
@@ -235,12 +234,12 @@ async function main() {
   specFiles.forEach(f => console.log(`    ${C.dim}→ ${path.basename(f)}${RESET}`));
   console.log();
 
-  const TOTAL   = 7;
+  const TOTAL   = 6;
   const summary = [];
 
-  // ── Stage 2: Execute story-specific specs ────────────────────────────────
-  stageHeader(1, TOTAL, `Execute story specs + Applitools Eyes [${useHeadless ? 'HEADLESS' : 'HEADED'}] → sync Zephyr`);
-  console.log(`  ${C.dim}Running ${specFiles.length} spec file(s) for story ${issueKey} with Applitools Eyes visual checks...${RESET}\n`);
+  // ── Stage 2: Execute story-specific specs ────────────────────────────────────
+  stageHeader(1, TOTAL, `Execute story specs [${useHeadless ? 'HEADLESS' : 'HEADED'}] → sync Zephyr`);
+  console.log(`  ${C.dim}Running ${specFiles.length} spec file(s) for story ${issueKey}...${RESET}\n`);
   const ts2 = Date.now();
   const pwExit = runPlaywright(specFiles, useHeadless ? [] : []);
 
@@ -301,15 +300,8 @@ async function main() {
   stageDone(5, 'Generate Allure report', okAllure || true, ms6);
   summary.push({ num: 5, label: 'Generate Allure report', status: okAllure ? 'PASS' : 'WARN', ms: ms6 });
 
-  // ── Stage 7: Generate Applitools visual test report ──────────────────────
-  stageHeader(6, TOTAL, 'Generate Applitools visual test report');
-  const ts7 = Date.now();
-  const { ok: okEyes } = runScript('scripts/generate-applitools-report.js');
-  const ms7 = Date.now() - ts7;
-  stageDone(6, 'Generate Applitools report', okEyes || true, ms7);
-  summary.push({ num: 6, label: 'Generate Applitools report', status: okEyes ? 'PASS' : 'WARN', ms: ms7 });
-  // ── Stage 8: Git Agent — auto-commit + push ──────────────────────────────
-  stageHeader(7, TOTAL, 'Git Agent — auto-commit + push', flags.has('--skip-git'));
+  // ── Stage 6: Git Agent — auto-commit + push ──────────────────────────────────────
+  stageHeader(6, TOTAL, 'Git Agent — auto-commit + push', flags.has('--skip-git'));
   if (flags.has('--skip-git')) {
     console.log(`  ${C.yellow}↷ Skipped  (--skip-git)${RESET}\n`);
     summary.push({ num: 7, label: 'Git Agent', status: 'SKIPPED', ms: 0 });
@@ -317,8 +309,8 @@ async function main() {
     const ts8 = Date.now();
     const { ok: okGit } = runScript('scripts/git-sync.js');
     const ms8 = Date.now() - ts8;
-    stageDone(7, 'Git Agent', okGit || true, ms8);
-    summary.push({ num: 7, label: 'Git Agent', status: okGit ? 'PASS' : 'WARN', ms: ms8 });
+    stageDone(6, 'Git Agent', okGit || true, ms8);
+    summary.push({ num: 6, label: 'Git Agent', status: okGit ? 'PASS' : 'WARN', ms: ms8 });
   }
   // ── Summary ──────────────────────────────────────────────────────────────
   const totalSec = ((Date.now() - t0) / 1000).toFixed(1);
@@ -336,10 +328,8 @@ async function main() {
 
   const reportPath    = path.join(ROOT, 'custom-report', 'index.html');
   const allurePath    = path.join(ROOT, 'allure-report', 'index.html');
-  const applitoolsPath = path.join(ROOT, 'custom-report', 'applitools-report.html');
   if (fs.existsSync(reportPath))     console.log(`  ${C.cyan}📄  Custom Report      : custom-report/index.html${RESET}`);
   if (fs.existsSync(allurePath))     console.log(`  ${C.cyan}📊  Allure Report      : allure-report/index.html${RESET}`);
-  if (fs.existsSync(applitoolsPath)) console.log(`  ${C.cyan}👁  Applitools Report  : custom-report/applitools-report.html${RESET}`);
   console.log();
 
   process.exit(summary.some(s => s.status === 'FAIL') ? 1 : 0);

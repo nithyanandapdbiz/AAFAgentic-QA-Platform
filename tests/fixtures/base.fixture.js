@@ -4,8 +4,7 @@
  *
  * Merges:
  *   • POM fixtures (LoginPage, AddEmployeePage, EmployeeListPage)
- *   • Applitools Eyes fixture (auto open/close)
- *   • ScreenshotHelper (auto-wired with Eyes)
+ *   • ScreenshotHelper
  *
  * Hooks provided:
  *   • beforeEach — Clear cookies for session isolation
@@ -29,10 +28,6 @@ const { LoginPage }          = require('../pages/LoginPage');
 const { AddEmployeePage }    = require('../pages/AddEmployeePage');
 const { EmployeeListPage }   = require('../pages/EmployeeListPage');
 const { ScreenshotHelper }   = require('../helpers/screenshot.helper');
-const { EyesHelper }         = require('../helpers/eyes.helper');
-
-// ── Applitools per-test results accumulation file (JSONL) ─────────────────
-const EYES_RESULTS_JSONL = path.resolve(__dirname, '..', '..', '.applitools-results.jsonl');
 
 // ── Suite-level counters (shared across workers) ──────────────────────────
 let _suiteStartTime = 0;
@@ -58,37 +53,9 @@ const test = base.extend({
     await use(String(Date.now()).slice(-5));
   },
 
-  // ── Applitools Eyes (auto open/close lifecycle) ───────────────────────
-  // Provides: eyes.check(), eyes.checkElement(), eyes.checkIgnoring(), eyes.checkLayout()
-  // Uses abortIfNotClosed() for safety on test failure
-  eyes: async ({ page }, use, testInfo) => {
-    const eyes = new EyesHelper();
-
-    // beforeEach: Open Eyes session (no-op if API key is absent)
-    await eyes.open(page, testInfo.title);
-
-    await use(eyes);
-
-    // afterEach: close on pass, abortIfNotClosed on fail
-    if (testInfo.status === 'passed') {
-      const url = await eyes.close();
-      if (url) {
-        await testInfo.attach('Applitools Results', { body: url, contentType: 'text/plain' });
-      }
-      // Persist per-test Eyes result for report generation
-      const detail = eyes.getLastResult();
-      if (detail) {
-        try { fs.appendFileSync(EYES_RESULTS_JSONL, JSON.stringify(detail) + '\n'); } catch { /* ignore */ }
-      }
-    } else {
-      // abortIfNotClosed() — safe even if session was already closed
-      await eyes.abort();
-    }
-  },
-
-  // ── ScreenshotHelper (auto-wired with Eyes) ──────────────────────────
-  sh: async ({ page, eyes }, use, testInfo) => {
-    await use(new ScreenshotHelper(page, testInfo, eyes));
+  // ── ScreenshotHelper ─────────────────────────────────────────────────
+  sh: async ({ page }, use, testInfo) => {
+    await use(new ScreenshotHelper(page, testInfo));
   },
 
   // ── Console error collector ───────────────────────────────────────────

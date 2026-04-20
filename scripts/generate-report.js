@@ -54,7 +54,6 @@ function collectTests(suites, parentFile = '') {
       let steps    = [];
       let failureScreenshot = null;
       let videoPath         = null;
-      let applitoolsUrl     = null;
 
       if (Array.isArray(spec.tests) && spec.tests.length) {
         const lastTest = spec.tests[spec.tests.length - 1];
@@ -105,7 +104,7 @@ function collectTests(suites, parentFile = '') {
             child:    !!s._child
           }));
 
-          // Extract Playwright-generated attachments (failure screenshot + video + Applitools URL)
+          // Extract Playwright-generated attachments (failure screenshot + video)
           for (const att of (lastResult.attachments || [])) {
             const attPath = att.path ? att.path.replace(/\\/g, '/') : null;
             if (att.contentType === 'image/png' && att.name === 'screenshot') {
@@ -113,12 +112,6 @@ function collectTests(suites, parentFile = '') {
             }
             if (att.contentType === 'video/webm' && att.name === 'video') {
               videoPath = attPath;
-            }
-            // Applitools dashboard URL attached by eyes.fixture.js
-            if (att.name === 'Applitools Results' && att.contentType === 'text/plain') {
-              applitoolsUrl = att.body
-                ? Buffer.from(att.body, 'base64').toString('utf8').trim()
-                : null;
             }
           }
         }
@@ -131,7 +124,7 @@ function collectTests(suites, parentFile = '') {
 
       out.push({
         zephyrKey, title: spec.title, status, duration, errorMsg,
-        steps, failureScreenshot, videoPath, applitoolsUrl, screenshots
+        steps, failureScreenshot, videoPath, screenshots
       });
     }
   }
@@ -321,7 +314,6 @@ function buildHtml(tests, runDate, totalDuration) {
         <span class="status-badge ${statusClass}">${statusIcon} ${t.status}</span>
         <span class="tc-key">${t.zephyrKey}</span>
         <span class="tc-title">${escHtml(t.title)}</span>
-        ${t.applitoolsUrl ? `<a href="${escHtml(t.applitoolsUrl)}" target="_blank" class="eyes-btn" onclick="event.stopPropagation()">👁 Applitools</a>` : ''}
         <span class="tc-duration">${fmtDuration(t.duration)}</span>
       </summary>
       <div class="card-body">
@@ -404,16 +396,6 @@ function buildHtml(tests, runDate, totalDuration) {
   .failure-shot img { max-height: 400px; width: auto; }
   .test-video { width: 100%; max-width: 720px; border-radius: 6px;
                 border: 1px solid #e0e0e0; background: #000; display: block; }
-
-  /* ── Applitools button ───────────────────────────────────────────────────── */
-  .eyes-btn {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 3px 10px; border-radius: 12px; font-size: .72rem; font-weight: 700;
-    text-decoration: none; letter-spacing: .04em; white-space: nowrap; flex-shrink: 0;
-    background: #e8eaf6; color: #3949ab; border: 1px solid #c5cae9;
-    transition: background .15s;
-  }
-  .eyes-btn:hover { background: #c5cae9; }
 
   /* ── Summary bar ────────────────────────────────────────────────────────── */
   .summary-bar {

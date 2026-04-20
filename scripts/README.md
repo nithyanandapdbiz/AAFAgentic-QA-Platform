@@ -29,7 +29,6 @@ CLI scripts for the Agentic QA Platform. All scripts are run from the project ro
 
 | Script | Purpose |
 |--------|---------|
-| `check-applitools.js` | Verify Applitools Eyes configuration and connectivity |
 | `diag-zephyr.js` | Diagnose Zephyr Scale API connectivity |
 | `test-agents.js` | Smoke-test all AI agents (Planner, QA, Reviewer, etc.) |
 | `test-endpoints.js` | Smoke-test all Express API endpoints |
