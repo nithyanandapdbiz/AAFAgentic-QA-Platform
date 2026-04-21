@@ -89,7 +89,10 @@ npm test
 PW_HEADLESS=true npm test
 
 # Run specific test case
-npx playwright test --grep "SCRUM-T53"
+npx playwright test --grep "SCRUM-T138"
+
+# Run with custom worker count
+PW_WORKERS=2 npm test
 ```
 
 ### Full QA Pipeline

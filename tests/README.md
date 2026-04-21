@@ -6,15 +6,20 @@ Playwright test framework using Page Object Model (POM) with ScreenshotHelper.
 
 ```
 tests/
-├── global-setup.js            # Playwright global setup (auth, browser warmup)
-├── global-teardown.js         # Playwright global teardown (cleanup)
+├── global-setup.js            # Dir init + AUT health-check + auth cache + cleanup
+├── global-teardown.js         # Suite summary + Allure results validation
 ├── data/
 │   └── testData.js            # Centralized test data, credentials, routes
 ├── fixtures/
-│   └── base.fixture.js        # Composed fixture: POM + ScreenshotHelper + hooks
+│   ├── base.fixture.js        # ★ Master fixture: POM + ScreenshotHelper + lifecycle hooks
+│   └── pom.fixture.js         # Lightweight POM-only fixture (no screenshots)
 ├── helpers/
 │   ├── screenshot.helper.js   # Step-based screenshot capture with Allure integration
 │   └── locatorLoader.js       # YAML locator file parser for page objects
+├── features/
+│   └── login/
+│       └── login.feature      # Gherkin BDD feature file for login scenarios
+├── healed/                    # Auto-generated healed spec copies (self-healer output)
 ├── pages/                     # Page Object Model classes
 │   ├── LoginPage.js           #   → Login page actions and assertions
 │   ├── LoginPage.yml          #   → Login page locators (YAML)
@@ -23,7 +28,7 @@ tests/
 │   ├── EmployeeListPage.js    #   → Employee list/search actions
 │   └── EmployeeListPage.yml   #   → Employee list locators (YAML)
 └── specs/                     # Test specifications (auto-generated from Zephyr)
-    └── SCRUM-T*.spec.js       # One spec per Zephyr test case
+    └── SCRUM-T*.spec.js       # One spec per Zephyr test case (currently T138–T154)
 ```
 
 ## Key Patterns
@@ -37,6 +42,7 @@ tests/
 
 ```bash
 npx playwright test                           # Run all specs
-npx playwright test --grep "SCRUM-T53"        # Run specific test case
+npx playwright test --grep "SCRUM-T138"      # Run specific test case
 PW_HEADLESS=true npx playwright test          # Headless mode (CI)
+PW_WORKERS=1 npx playwright test             # Serial execution (debug)
 ```

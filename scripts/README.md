@@ -13,7 +13,7 @@ CLI scripts for the Agentic QA Platform. All scripts are run from the project ro
 | `run-and-sync.js` | Run tests and sync results to Zephyr Scale |
 | `run-story.js` | Process a single Jira story into Zephyr test cases |
 | `run-story-tests.js` | Generate specs from story and execute them |
-| `run-tagged-tests.js` | Run tests filtered by tag (`--tag smoke`, `--tag SCRUM-T53`) |
+| `run-tagged-tests.js` | Run tests filtered by tag (`--tag smoke`, `--tag SCRUM-T138`) |
 
 ## Generators
 
@@ -33,3 +33,9 @@ CLI scripts for the Agentic QA Platform. All scripts are run from the project ro
 | `test-agents.js` | Smoke-test all AI agents (Planner, QA, Reviewer, etc.) |
 | `test-endpoints.js` | Smoke-test all Express API endpoints |
 | `validate-integration.js` | Validate end-to-end integration (Jira + Zephyr + Playwright) |
+## Utilities
+
+| Script | Purpose |
+|--------|----------|
+| `ensure-dirs.js` | Create and manage all output directories; wipe stale contents pre-run |
+| `git-sync.js` | Git agent — `git add -A` → commit → push to current branch |

@@ -1,6 +1,6 @@
 # Agentic QA Platform — Complete Documentation
 
-> **Version:** 1.0.0 &nbsp;|&nbsp; **Last Updated:** April 8, 2026 &nbsp;|&nbsp; **Platform:** Node.js 20+ &nbsp;|&nbsp; **Framework:** Playwright
+> **Version:** 1.1.0 &nbsp;|&nbsp; **Last Updated:** April 20, 2026 &nbsp;|&nbsp; **Platform:** Node.js 20+ &nbsp;|&nbsp; **Framework:** Playwright
 
 ---
 
@@ -199,7 +199,7 @@ Jira User Story
 │  │  │                                                                      │  │ │
 │  │  │  ┌────────────┐  ┌────────────────┐  ┌──────────────────────────┐   │  │ │
 │  │  │  │ Playwright │  │ base.fixture.js│  │  tests/specs/            │   │  │ │
-│  │  │  │  Engine    │  │ (POM +         │  │  SCRUM-T53..T69.spec.js │   │  │ │
+│  │  │  │  Engine    │  │ (POM +         │  │  SCRUM-T138..T154.spec.js│   │  │ │
 │  │  │  │            │  │  Screenshot    │  │  (17 auto-generated)    │   │  │ │
 │  │  │  │            │  │  + Hooks)      │  │                          │   │  │ │
 │  │  │  └────────────┘  └────────────────┘  └──────────────────────────┘   │  │ │
@@ -217,6 +217,7 @@ Jira User Story
 │  │  │  generate-playwright.js │ healer.js │ git-sync.js                  │  │ │
 │  │  │  generate-report.js  │  generate-allure-report.js                  │  │ │
 │  │  │  create-jira-bugs.js  │  validate-integration.js                   │  │ │
+│  │  │  ensure-dirs.js │ diag-zephyr.js │ test-agents.js │ test-endpoints.js│  │ │
 │  │  └──────────────────────────────────────────────────────────────────────┘  │ │
 │  │                                                                           │ │
 │  │  ┌──────────────────────────────────────────────────────────────────────┐  │ │
@@ -390,29 +391,39 @@ agentic-qa-platform-full/
 │       └── zephyrJwt.js              #     Zephyr API auth headers
 │
 ├── tests/                            # Playwright test framework
-│   ├── global-setup.js               #   AUT health-check + auth cache + cleanup stale data
-│   ├── global-teardown.js            #   Suite summary
+│   ├── global-setup.js               #   Dir init + AUT health-check + auth cache + cleanup
+│   ├── global-teardown.js            #   Suite summary + Allure results validation
 │   │
 │   ├── fixtures/                     #   Composed Playwright fixtures
 │   │   ├── base.fixture.js           #     ★ Master fixture (POM + Screenshot + Hooks)
 │   │   └── pom.fixture.js            #     Lightweight POM-only fixture
 │   │
 │   ├── helpers/                      #   Test helpers
-│   │   └── screenshot.helper.js      #     ScreenshotHelper class (step screenshots)
+│   │   ├── screenshot.helper.js      #     ScreenshotHelper class (step screenshots)
+│   │   └── locatorLoader.js          #     YAML locator file loader for page objects
 │   │
 │   ├── pages/                        #   Page Object Model
 │   │   ├── LoginPage.js              #     goto(), login(), getErrorMessage()
-│   │   ├── AddEmployeePage.js        #     navigate(), fillEmployee(), save(), cancel()
-│   │   └── EmployeeListPage.js       #     navigate(), searchEmployee(), getRowCount()
+│   │   ├── LoginPage.yml             #     Locator definitions for LoginPage
+│   │   ├── AddEmployeePage.js        #     navigate(), fillEmployee(), setEmployeeId(), save(), cancel()
+│   │   ├── AddEmployeePage.yml       #     Locator definitions for AddEmployeePage
+│   │   ├── EmployeeListPage.js       #     navigate(), searchEmployee(), getRowCount()
+│   │   └── EmployeeListPage.yml      #     Locator definitions for EmployeeListPage
 │   │
 │   ├── data/                         #   Test data
 │   │   └── testData.js               #     BASE_URL, CREDENTIALS, TEST_EMPLOYEE, ROUTES
 │   │
+│   ├── features/                     #   BDD feature files (Gherkin)
+│   │   └── login/
+│   │       └── login.feature         #     Login scenarios in Gherkin format
+│   │
+│   ├── healed/                       #   Auto-generated healed spec copies (self-healer output)
+│   │
 │   └── specs/                        #   Auto-generated spec files (17 tests)
-│       ├── SCRUM-T53_verify_successful_user_login_*.spec.js
-│       ├── SCRUM-T54_verify_mandatory_fields_*.spec.js
-│       ├── SCRUM-T55_verify_..._rejects_invalid_*.spec.js
-│       └── ... (17 total: SCRUM-T53 through SCRUM-T69)
+│       ├── SCRUM-T138_verify_duplicate_employee_creation_*.spec.js
+│       ├── SCRUM-T139_verify_session_timeout_*.spec.js
+│       ├── SCRUM-T140_verify_concurrent_access_*.spec.js
+│       └── ... (17 total: SCRUM-T138 through SCRUM-T154)
 │
 ├── scripts/                          # CLI pipeline scripts
 │   ├── qa-run.js                     #   ★ Main 8-stage pipeline (zero-prompt)
@@ -427,7 +438,11 @@ agentic-qa-platform-full/
 │   ├── create-jira-bugs.js           #     Auto-create Jira bugs + link to story
 │   ├── healer.js                     #     Self-healing agent (classify + patch + re-run)
 │   ├── git-sync.js                   #     Git agent (add + commit + push)
-│   └── validate-integration.js       #     API connectivity validation
+│   ├── validate-integration.js       #     API connectivity validation (Jira + Zephyr)
+│   ├── ensure-dirs.js                #     Output directory management (create + clean)
+│   ├── diag-zephyr.js                #     Zephyr sync diagnostic tool
+│   ├── test-agents.js                #     Agent smoke tests (mock story, no API calls)
+│   └── test-endpoints.js             #     REST API endpoint tests
 │
 ├── dashboard/                        # React dashboard (separate package)
 │   ├── package.json                  #   react: ^18.2.0
@@ -656,6 +671,10 @@ Runs tests filtered by tag/annotation pattern with a rich alias system.
 | `generate-allure-report.js` | Allure CLI: `allure generate allure-results/ -o allure-report/` |
 | `create-jira-bugs.js` | Create Jira bugs for failures + link to parent story |
 | `validate-integration.js` | Test Jira + Zephyr API connectivity |
+| `ensure-dirs.js` | Guarantee all output directories exist; wipe stale contents pre-run |
+| `diag-zephyr.js` | Diagnostic tool — parse `test-results.json` and check Zephyr sync status |
+| `test-agents.js` | Smoke-test all AI agents using a mock Jira story (no external API calls) |
+| `test-endpoints.js` | Quick health-check for REST API endpoints (requires server running on `:3000`) |
 
 ---
 
@@ -668,14 +687,16 @@ Runs tests filtered by tag/annotation pattern with a rich alias system.
 | Test directory | `./tests/specs` |
 | Timeout | 90,000ms (90 seconds) |
 | Retries | 1 |
-| Workers | 1 (serial execution for deterministic results) |
+| Workers | 3 by default (parallel); override with `PW_WORKERS` env var |
+| Fully parallel | `true` — tests run concurrently across workers |
 | Base URL | `https://opensource-demo.orangehrmlive.com` |
 | Browser | Chromium |
-| Headed/Headless | Headed by default (`PW_HEADLESS=true` for CI) |
-| Slow motion | 100ms (headed), 0ms (headless) |
-| Screenshots | Always captured |
+| Headed/Headless | Headed by default; `PW_HEADLESS=true` or `--headless` flag for CI |
+| Slow motion | 50ms (headed), 0ms (headless) |
+| Screenshots | On failure only (ScreenshotHelper captures per-step screenshots) |
 | Video | Retained on failure |
 | Trace | Retained on failure |
+| Test grep filter | `PW_GREP=<regex>` env var (e.g. `PW_GREP=SCRUM-T138`) |
 
 ### 7.2 Reporters
 
@@ -689,22 +710,35 @@ Runs tests filtered by tag/annotation pattern with a rich alias system.
 ### 7.3 Global Setup (`tests/global-setup.js`)
 
 Runs once before the entire test suite:
-1. **Cleanup** — Wipes `allure-results/`
-2. **Health Check** — Launches headless Chromium, navigates to OrangeHRM login page, asserts HTTP 200 and that `input[name="username"]` renders. **Fails fast** if the application under test is unreachable
-3. **Auth Cache** — Logs in as Admin, saves `storageState` to `.auth/storage-state.json`
-4. **Logging** — Prints base URL, worker count, retries, and timestamp
+1. **Directory Initialization** — Calls `ensureDirs()` (from `scripts/ensure-dirs.js`) to guarantee every output directory exists (`allure-results/`, `allure-report/`, `test-results/screenshots/`, `custom-report/`, `playwright-report/`, `.auth/`)
+2. **Cleanup** — Wipes `allure-results/` and `test-results/screenshots/` using `cleanDir()` so reports reflect only the current run
+3. **Health Check** — Launches headless Chromium, navigates to OrangeHRM login page, asserts HTTP 200 and that `input[name="username"]` renders. **Fails fast** if the application under test is unreachable
+4. **Auth Cache** — Logs in as Admin, saves `storageState` to `.auth/storage-state.json`
+5. **Logging** — Prints base URL, worker count, retries, and timestamp
 
 ### 7.4 Global Teardown (`tests/global-teardown.js`)
 
 Runs once after the entire test suite:
 1. **Result Parsing** — Walks `test-results.json` suite tree counting passed/failed/skipped/flaky
 2. **Summary Table** — Prints total, pass/fail/skip/flaky counts, duration, and pass rate
+3. **Allure Validation** — Calls `validateAllureResults()` (from `scripts/ensure-dirs.js`) to verify `allure-results/` contains result files, warning if the directory is empty
 
 ---
 
 ## 8. Page Object Model (POM)
 
-All page objects follow a consistent pattern with YAML-based locator files.
+All page objects follow a consistent pattern with **YAML-based external locator files**. Locators are loaded at construction time via `tests/helpers/locatorLoader.js`, which parses `<PageName>.yml` files next to each page class. This decouples selector maintenance from test logic — updating a locator never requires changing test code.
+
+### 8.0 Locator Loader (`tests/helpers/locatorLoader.js`)
+
+Reads a `.yml` file of `key: selector` pairs and returns a plain object. Supports single-quoted, double-quoted, and unquoted values; ignores comments and blank lines.
+
+```js
+// Usage inside a page object
+const { loadLocators } = require('../helpers/locatorLoader');
+const loc = loadLocators(path.join(__dirname, 'LoginPage.yml'));
+// loc.usernameInput → 'input[name="username"]'
+```
 
 ### 8.1 LoginPage (`tests/pages/LoginPage.js`)
 
@@ -714,7 +748,8 @@ All page objects follow a consistent pattern with YAML-based locator files.
 | `login(username, password)` | Full login flow: goto → fill username → fill password → click login → wait for dashboard URL |
 | `getErrorMessage()` | Returns visible error alert text, or `null` |
 
-**Locators:** `usernameInput`, `passwordInput`, `loginButton`, `errorAlert`
+**Locators:** `usernameInput`, `passwordInput`, `loginButton`, `errorAlert`  
+**YAML file:** `tests/pages/LoginPage.yml`
 
 ### 8.2 AddEmployeePage (`tests/pages/AddEmployeePage.js`)
 
@@ -726,6 +761,9 @@ All page objects follow a consistent pattern with YAML-based locator files.
 | `save()` | Click the Save button |
 | `cancel()` | Click Cancel if visible, otherwise navigate to Employee List |
 
+**Locators:** `firstNameInput`, `middleNameInput`, `lastNameInput`, `employeeIdInput`, `saveButton`, `cancelButton`, `validationErrors`  
+**YAML file:** `tests/pages/AddEmployeePage.yml`
+
 ### 8.3 EmployeeListPage (`tests/pages/EmployeeListPage.js`)
 
 | Method | Description |
@@ -733,6 +771,9 @@ All page objects follow a consistent pattern with YAML-based locator files.
 | `navigate()` | Go to `/web/index.php/pim/viewEmployeeList`, wait for DOM |
 | `searchEmployee(name)` | Type name with typing delay, click search, wait for DOM |
 | `getRowCount()` | Returns count of visible table rows |
+
+**Locators:** `searchNameInput`, `searchButton`, `tableRows`, `noRecordsText`, `paginationInfo`  
+**YAML file:** `tests/pages/EmployeeListPage.yml`
 
 ---
 
@@ -985,6 +1026,8 @@ Minimal React 18 app showing `Total`, `Passed`, `Failed` counts from `/api/dashb
 | `ZEPHYR_BASE_URL` | ✅ | `https://prod-api.zephyr4jiracloud.com/v2` | Zephyr Essential API base |
 | `ZEPHYR_ACCESS_KEY` | ✅ | — | Zephyr API access key |
 | `PW_HEADLESS` | Optional | `false` | Run Playwright in headless mode |
+| `PW_WORKERS` | Optional | `3` | Number of parallel Playwright workers (e.g. `1`, `4`, `50%`) |
+| `PW_GREP` | Optional | — | Regex to filter tests by title (e.g. `SCRUM-T138`) |
 | `PORT` | Optional | `3000` | Express server port |
 | `JIRA_BUG_ISSUETYPE` | Optional | `Bug` | Issue type for auto-created bugs |
 | `WEBHOOK_SECRET` | Optional | — | HMAC secret for Jira webhook validation |
@@ -1113,13 +1156,22 @@ After the pipeline completes, open these reports:
 node scripts/validate-integration.js
 
 # Run single test in debug mode
-npx playwright test --grep "SCRUM-T53" --debug
+npx playwright test --grep "SCRUM-T138" --debug
 
 # View test trace
 npx playwright show-trace test-results/<trace-file>.zip
 
 # List matching specs for a tag (without running)
 node scripts/run-tagged-tests.js --tag smoke --list-only
+
+# Diagnose Zephyr sync (parse test-results.json vs Zephyr)
+node scripts/diag-zephyr.js
+
+# Smoke-test AI agents offline (no external API calls)
+node scripts/test-agents.js
+
+# Test REST API endpoints (requires server: npm run start:server)
+node scripts/test-endpoints.js
 ```
 
 ---
@@ -1154,4 +1206,4 @@ node scripts/run-tagged-tests.js --tag smoke --list-only
 
 ---
 
-*Generated for the Agentic QA Platform — April 8, 2026*
+*Generated for the Agentic QA Platform — April 20, 2026*
